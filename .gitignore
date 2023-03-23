@@ -1,0 +1,4 @@
+coverage.txt
+*.go-e
+_debig_bin
+.vscode
