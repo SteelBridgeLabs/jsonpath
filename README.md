@@ -1,5 +1,6 @@
 # JsonPath
 
+[![Build](https://github.com/SteelBridgeLabs/jsonpath/actions/workflows/go.yml/badge.svg)](https://github.com/SteelBridgeLabs/jsonpath/actions)
 [![GoDoc](https://godoc.org/github.com/SteelBridgeLabs/jsonpath?status.svg)](https://godoc.org/github.com/SteelBridgeLabs/jsonpath)
 [![Go Report Card](https://goreportcard.com/badge/SteelBridgeLabs/jsonpath)](https://goreportcard.com/report/SteelBridgeLabs/jsonpath)
 
@@ -173,7 +174,7 @@ The following sources inspired the syntax and semantics of YAML JSONPath:
 
 ## Developing
 
-Run the tests as usual (append `test` flag for tests):
+Run the tests as usual (append `test` tag for tests):
 
 ```bash
 go test -tags test ./...
