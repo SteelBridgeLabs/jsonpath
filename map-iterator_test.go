@@ -1,4 +1,5 @@
 //go:build test
+// +build test
 
 /*
  * Copyright 2023 SteelBridgeLabs, Inc.
