@@ -18,7 +18,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/SteelBridgeLabs/jsonpath"
 )
@@ -144,18 +143,10 @@ textarea, input {
 			respondWithError(w, err)
 		}
 
-		out := []string{}
-		for _, a := range results {
-			b, err := encode(a)
-			if err != nil {
-				respondWithError(w, err)
-				return
-			}
-			out = append(out, b)
-		}
-
+		// encode results
+		op.Output, _ = encode(results)
 		op.Success = true
-		op.Output = strings.Join(out, "---\n")
+
 		if e := tmpl.Execute(w, op); e != nil {
 			respondWithError(w, e)
 		}

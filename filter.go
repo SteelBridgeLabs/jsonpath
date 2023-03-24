@@ -259,10 +259,18 @@ func typedValueOfNode(value any) typedValue {
 		return typedValueOfString(v)
 	case int:
 		return typedValueOfInt(v)
+	case int8:
+		return typedValueOfInt8(v)
+	case int16:
+		return typedValueOfInt16(v)
+	case int32:
+		return typedValueOfInt32(v)
+	case int64:
+		return typedValueOfInt64(v)
 	case float32:
-		return typedValueOfFloat(float64(v), 32)
+		return typedValueOfFloat32(v)
 	case float64:
-		return typedValueOfFloat(v, 64)
+		return typedValueOfFloat64(v)
 	default:
 		// unknown
 		return typedValue{
@@ -297,11 +305,31 @@ func typedValueOfString(s string) typedValue {
 }
 
 func typedValueOfInt(i int) typedValue {
-	return newTypedValue(intValueType, strconv.Itoa(i))
+	return newTypedValue(intValueType, strconv.FormatInt(int64(i), 10))
 }
 
-func typedValueOfFloat(f float64, bitSize int) typedValue {
-	return newTypedValue(floatValueType, strconv.FormatFloat(f, 'f', -1, bitSize))
+func typedValueOfInt8(i int8) typedValue {
+	return newTypedValue(intValueType, strconv.FormatInt(int64(i), 10))
+}
+
+func typedValueOfInt16(i int16) typedValue {
+	return newTypedValue(intValueType, strconv.FormatInt(int64(i), 10))
+}
+
+func typedValueOfInt32(i int32) typedValue {
+	return newTypedValue(intValueType, strconv.FormatInt(int64(i), 10))
+}
+
+func typedValueOfInt64(i int64) typedValue {
+	return newTypedValue(intValueType, strconv.FormatInt(i, 10))
+}
+
+func typedValueOfFloat32(f float32) typedValue {
+	return newTypedValue(floatValueType, strconv.FormatFloat(float64(f), 'f', -1, 32))
+}
+
+func typedValueOfFloat64(f float64) typedValue {
+	return newTypedValue(floatValueType, strconv.FormatFloat(f, 'f', -1, 64))
 }
 
 func values(values []any, err error) []typedValue {

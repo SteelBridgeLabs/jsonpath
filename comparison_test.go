@@ -157,70 +157,70 @@ func TestComparators(t *testing.T) {
 			name:       "node values equal",
 			comparator: equal,
 			comparisons: map[comparison]bool{
-				compareNodeValues(typedValueOfString("a"), typedValueOfString("a")):    true,
-				compareNodeValues(typedValueOfString("a"), typedValueOfString("b")):    false,
-				compareNodeValues(typedValueOfFloat(1.0, 64), typedValueOfInt(1)):      true,
-				compareNodeValues(typedValueOfFloat(1.0, 64), typedValueOfString("a")): false,
-				compareNodeValues(typedValueOfString("a"), typedValueOfFloat(1.0, 64)): false,
+				compareNodeValues(typedValueOfString("a"), typedValueOfString("a")):  true,
+				compareNodeValues(typedValueOfString("a"), typedValueOfString("b")):  false,
+				compareNodeValues(typedValueOfFloat64(1.0), typedValueOfInt(1)):      true,
+				compareNodeValues(typedValueOfFloat64(1.0), typedValueOfString("a")): false,
+				compareNodeValues(typedValueOfString("a"), typedValueOfFloat64(1.0)): false,
 			},
 		},
 		{
 			name:       "node values not equal",
 			comparator: notEqual,
 			comparisons: map[comparison]bool{
-				compareNodeValues(typedValueOfString("a"), typedValueOfString("a")):    false,
-				compareNodeValues(typedValueOfString("a"), typedValueOfString("b")):    true,
-				compareNodeValues(typedValueOfFloat(1.0, 64), typedValueOfInt(1)):      false,
-				compareNodeValues(typedValueOfFloat(1.0, 64), typedValueOfString("a")): true,
-				compareNodeValues(typedValueOfString("a"), typedValueOfFloat(1.0, 64)): true,
+				compareNodeValues(typedValueOfString("a"), typedValueOfString("a")):  false,
+				compareNodeValues(typedValueOfString("a"), typedValueOfString("b")):  true,
+				compareNodeValues(typedValueOfFloat64(1.0), typedValueOfInt(1)):      false,
+				compareNodeValues(typedValueOfFloat64(1.0), typedValueOfString("a")): true,
+				compareNodeValues(typedValueOfString("a"), typedValueOfFloat64(1.0)): true,
 			},
 		},
 		{
 			name:       "node values greater than",
 			comparator: greaterThan,
 			comparisons: map[comparison]bool{
-				compareNodeValues(typedValueOfFloat(1.1, 64), typedValueOfFloat(1.2, 64)): false,
-				compareNodeValues(typedValueOfFloat(1.1, 64), typedValueOfFloat(1.1, 64)): false,
-				compareNodeValues(typedValueOfFloat(1.2, 64), typedValueOfFloat(1.1, 64)): true,
-				compareNodeValues(typedValueOfString("a"), typedValueOfString("a")):       false, // should be excluded by lexer
-				compareNodeValues(typedValueOfFloat(1.0, 64), typedValueOfString("a")):    false, // should be excluded by lexer
-				compareNodeValues(typedValueOfString("a"), typedValueOfFloat(1.0, 64)):    false, // should be excluded by lexer
+				compareNodeValues(typedValueOfFloat64(1.1), typedValueOfFloat64(1.2)): false,
+				compareNodeValues(typedValueOfFloat64(1.1), typedValueOfFloat64(1.1)): false,
+				compareNodeValues(typedValueOfFloat64(1.2), typedValueOfFloat64(1.1)): true,
+				compareNodeValues(typedValueOfString("a"), typedValueOfString("a")):   false, // should be excluded by lexer
+				compareNodeValues(typedValueOfFloat64(1.0), typedValueOfString("a")):  false, // should be excluded by lexer
+				compareNodeValues(typedValueOfString("a"), typedValueOfFloat64(1.0)):  false, // should be excluded by lexer
 			},
 		},
 		{
 			name:       "node values greater than or equal",
 			comparator: greaterThanOrEqual,
 			comparisons: map[comparison]bool{
-				compareNodeValues(typedValueOfFloat(1.1, 64), typedValueOfFloat(1.2, 64)): false,
-				compareNodeValues(typedValueOfFloat(1.1, 64), typedValueOfFloat(1.1, 64)): true,
-				compareNodeValues(typedValueOfFloat(1.2, 64), typedValueOfFloat(1.1, 64)): true,
-				compareNodeValues(typedValueOfString("a"), typedValueOfString("a")):       true,  // should be excluded by lexer
-				compareNodeValues(typedValueOfFloat(1.0, 64), typedValueOfString("a")):    false, // should be excluded by lexer
-				compareNodeValues(typedValueOfString("a"), typedValueOfFloat(1.0, 64)):    false, // should be excluded by lexer
+				compareNodeValues(typedValueOfFloat64(1.1), typedValueOfFloat64(1.2)): false,
+				compareNodeValues(typedValueOfFloat64(1.1), typedValueOfFloat64(1.1)): true,
+				compareNodeValues(typedValueOfFloat64(1.2), typedValueOfFloat64(1.1)): true,
+				compareNodeValues(typedValueOfString("a"), typedValueOfString("a")):   true,  // should be excluded by lexer
+				compareNodeValues(typedValueOfFloat64(1.0), typedValueOfString("a")):  false, // should be excluded by lexer
+				compareNodeValues(typedValueOfString("a"), typedValueOfFloat64(1.0)):  false, // should be excluded by lexer
 			},
 		},
 		{
 			name:       "node values less than",
 			comparator: lessThan,
 			comparisons: map[comparison]bool{
-				compareNodeValues(typedValueOfFloat(1.1, 64), typedValueOfFloat(1.2, 64)): true,
-				compareNodeValues(typedValueOfFloat(1.1, 64), typedValueOfFloat(1.1, 64)): false,
-				compareNodeValues(typedValueOfFloat(1.2, 64), typedValueOfFloat(1.1, 64)): false,
-				compareNodeValues(typedValueOfString("a"), typedValueOfString("a")):       false, // should be excluded by lexer
-				compareNodeValues(typedValueOfFloat(1.0, 64), typedValueOfString("a")):    false, // should be excluded by lexer
-				compareNodeValues(typedValueOfString("a"), typedValueOfFloat(1.0, 64)):    false, // should be excluded by lexer
+				compareNodeValues(typedValueOfFloat64(1.1), typedValueOfFloat64(1.2)): true,
+				compareNodeValues(typedValueOfFloat64(1.1), typedValueOfFloat64(1.1)): false,
+				compareNodeValues(typedValueOfFloat64(1.2), typedValueOfFloat64(1.1)): false,
+				compareNodeValues(typedValueOfString("a"), typedValueOfString("a")):   false, // should be excluded by lexer
+				compareNodeValues(typedValueOfFloat64(1.0), typedValueOfString("a")):  false, // should be excluded by lexer
+				compareNodeValues(typedValueOfString("a"), typedValueOfFloat64(1.0)):  false, // should be excluded by lexer
 			},
 		},
 		{
 			name:       "node values less than or equal",
 			comparator: lessThanOrEqual,
 			comparisons: map[comparison]bool{
-				compareNodeValues(typedValueOfFloat(1.1, 64), typedValueOfFloat(1.2, 64)): true,
-				compareNodeValues(typedValueOfFloat(1.1, 64), typedValueOfFloat(1.1, 64)): true,
-				compareNodeValues(typedValueOfFloat(1.2, 64), typedValueOfFloat(1.1, 64)): false,
-				compareNodeValues(typedValueOfString("a"), typedValueOfString("a")):       true,  // should be excluded by lexer
-				compareNodeValues(typedValueOfFloat(1.0, 64), typedValueOfString("a")):    false, // should be excluded by lexer
-				compareNodeValues(typedValueOfString("a"), typedValueOfFloat(1.0, 64)):    false, // should be excluded by lexer
+				compareNodeValues(typedValueOfFloat64(1.1), typedValueOfFloat64(1.2)): true,
+				compareNodeValues(typedValueOfFloat64(1.1), typedValueOfFloat64(1.1)): true,
+				compareNodeValues(typedValueOfFloat64(1.2), typedValueOfFloat64(1.1)): false,
+				compareNodeValues(typedValueOfString("a"), typedValueOfString("a")):   true,  // should be excluded by lexer
+				compareNodeValues(typedValueOfFloat64(1.0), typedValueOfString("a")):  false, // should be excluded by lexer
+				compareNodeValues(typedValueOfString("a"), typedValueOfFloat64(1.0)):  false, // should be excluded by lexer
 			},
 		},
 	}
