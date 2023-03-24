@@ -36,7 +36,7 @@ func NewPath(path string) (*Path, error) {
 func (p *Path) Evaluate(value any) ([]any, error) {
 	// evaluate path
 	it := p.expression(value, value)
-	// to array
+	// to array, never return an error here! (panic if error is returned)
 	return it.ToSlice(), nil
 }
 
@@ -698,34 +698,6 @@ func filterThen(filterLexemes []lexeme, path *Path) *Path {
 				if filter(av, root) {
 					// evaluate path expression on value
 					its = append(its, compose(FromValues(false, av), path, root))
-				}
-			}
-			return FromIterators(its...)
-
-		case map[string]any:
-			// iterators
-			its := make([]Iterator, 0, len(v))
-			// loop map values
-			loopMap(v, func(_ string, mv any) {
-				// evaluate filter on value
-				if filter(mv, root) {
-					// evaluate path expression on value
-					its = append(its, compose(FromValues(false, mv), path, root))
-				}
-			})
-			return FromIterators(its...)
-
-		case MapIterator:
-			// iterators
-			its := []Iterator{}
-			// iterator
-			it := v.Values()
-			// loop over iterator
-			for mv, ok := it(); ok; mv, ok = it() {
-				// evaluate filter on value
-				if filter(mv, root) {
-					// evaluate path expression on value
-					its = append(its, compose(FromValues(false, mv), path, root))
 				}
 			}
 			return FromIterators(its...)

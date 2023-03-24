@@ -46,8 +46,8 @@ Valid paths are strings conforming to the following BNF syntax.
                         ".." <array access>  |                     ; array access of all descendents
 <array access> ::= "[" union "]" | "[" <filter> "]"                ; zero or more elements of a sequence
 
-<union> ::= <index> | <index> "," <union>
-<index> ::= <integer> | <range> | "*"                              ; specific index, range of indices, or all indices
+<union> ::= <index> | <index> "," <union> | "*"
+<index> ::= <integer> | <range>                                    ; specific index, range of indices, or all indices
 <range> ::= <integer> ":" <integer> |                              ; start (inclusive) to end (exclusive)
             <integer> ":" <integer> ":" <integer>                  ; start (inclusive) to end (exclusive) by step
 

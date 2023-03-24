@@ -21,14 +21,8 @@ type Iterator func() (any, bool)
 func (it Iterator) ToSlice() []any {
 	// create slice
 	values := []any{}
-	// iterate
-	for {
-		// get next value
-		value, ok := it()
-		// check if iterator is done
-		if !ok {
-			break
-		}
+	// iterate values
+	for value, ok := it(); ok; value, ok = it() {
 		// append value to slice
 		values = append(values, value)
 	}
