@@ -689,6 +689,14 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "array union with wildcard and index",
+			path: "$[*,1]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: "invalid array index [*,1] before position 6: error in union member 0: wildcard cannot be used in union"},
+			},
+		},
+		{
 			name: "bracket child with malformed array subscript",
 			path: "$['child'][1:2:3:4]",
 			expected: []lexeme{
