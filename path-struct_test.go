@@ -234,7 +234,7 @@ func TestBracketChildStructPath2(t *testing.T) {
 	// act
 	result := path.Evaluate(value)
 	// assert
-	if diff := cmp.Diff([]any{2}, result); diff != "" {
+	if diff := cmp.Diff([]any{}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
 }
@@ -247,6 +247,81 @@ func TestBracketChildStructPath3(t *testing.T) {
 	result := path.Evaluate(value)
 	// assert
 	if diff := cmp.Diff([]any{"a"}, result); diff != "" {
+		t.Errorf("invalid result: %s", diff)
+	}
+}
+
+func TestBracketChildStructPath4(t *testing.T) {
+	// arrange
+	value := Array{1, 2, 3}
+	path, _ := NewPath(`["1"]~`)
+	// act
+	result := path.Evaluate(value)
+	// assert
+	if diff := cmp.Diff([]any{}, result); diff != "" {
+		t.Errorf("invalid result: %s", diff)
+	}
+}
+
+func TestFilterOnRecursiveDescentStructPath1(t *testing.T) {
+	// arrange
+	value := Object{
+		"store": Object{
+			"book": Array{
+				Object{
+					"category": "reference",
+					"author":   "Nigel Rees",
+					"title":    "Sayings of the Century",
+					"price":    8.95,
+				},
+				Object{
+					"category": "fiction",
+					"author":   "Evelyn Waugh",
+					"title":    "Sword of Honour",
+					"price":    12.99,
+				},
+				Object{
+					"category": "fiction",
+					"author":   "Herman Melville",
+					"title":    "Moby Dick",
+					"isbn":     "0-553-21311-3",
+					"price":    8.99,
+				},
+				Object{
+					"category": "fiction",
+					"author":   "J. R. R. Tolkien",
+					"title":    "The Lord of the Rings",
+					"isbn":     "0-395-19395-8",
+					"price":    22.99,
+				},
+			},
+			"bicycle": Object{
+				"color": "red",
+				"price": 19.95,
+			},
+		},
+	}
+	path, _ := NewPath(`$..book[?(@.isbn)]`)
+	expected := []any{
+		Object{
+			"category": "fiction",
+			"author":   "Herman Melville",
+			"title":    "Moby Dick",
+			"isbn":     "0-553-21311-3",
+			"price":    8.99,
+		},
+		Object{
+			"category": "fiction",
+			"author":   "J. R. R. Tolkien",
+			"title":    "The Lord of the Rings",
+			"isbn":     "0-395-19395-8",
+			"price":    22.99,
+		},
+	}
+	// act
+	result := path.Evaluate(value)
+	// assert
+	if diff := cmp.Diff(expected, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
 }

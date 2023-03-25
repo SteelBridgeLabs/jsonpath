@@ -157,7 +157,7 @@ func TestBracketChildPath2(t *testing.T) {
 	// act
 	result := path.Evaluate(value)
 	// assert
-	if diff := cmp.Diff([]any{2}, result); diff != "" {
+	if diff := cmp.Diff([]any{}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
 }
@@ -181,7 +181,70 @@ func TestBracketChildPath4(t *testing.T) {
 	// act
 	result := path.Evaluate(value)
 	// assert
-	if diff := cmp.Diff([]any{"1"}, result); diff != "" {
+	if diff := cmp.Diff([]any{}, result); diff != "" {
+		t.Errorf("invalid result: %s", diff)
+	}
+}
+
+func TestFilterOnRecursiveDescentPath1(t *testing.T) {
+	// arrange
+	value := map[string]any{
+		"store": map[string]any{
+			"book": []any{
+				map[string]any{
+					"category": "reference",
+					"author":   "Nigel Rees",
+					"title":    "Sayings of the Century",
+					"price":    8.95,
+				},
+				map[string]any{
+					"category": "fiction",
+					"author":   "Evelyn Waugh",
+					"title":    "Sword of Honour",
+					"price":    12.99,
+				},
+				map[string]any{
+					"category": "fiction",
+					"author":   "Herman Melville",
+					"title":    "Moby Dick",
+					"isbn":     "0-553-21311-3",
+					"price":    8.99,
+				},
+				map[string]any{
+					"category": "fiction",
+					"author":   "J. R. R. Tolkien",
+					"title":    "The Lord of the Rings",
+					"isbn":     "0-395-19395-8",
+					"price":    22.99,
+				},
+			},
+			"bicycle": map[string]any{
+				"color": "red",
+				"price": 19.95,
+			},
+		},
+	}
+	path, _ := NewPath(`$..book[?(@.isbn)]`)
+	expected := []any{
+		map[string]any{
+			"category": "fiction",
+			"author":   "Herman Melville",
+			"title":    "Moby Dick",
+			"isbn":     "0-553-21311-3",
+			"price":    8.99,
+		},
+		map[string]any{
+			"category": "fiction",
+			"author":   "J. R. R. Tolkien",
+			"title":    "The Lord of the Rings",
+			"isbn":     "0-395-19395-8",
+			"price":    22.99,
+		},
+	}
+	// act
+	result := path.Evaluate(value)
+	// assert
+	if diff := cmp.Diff(expected, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
 }

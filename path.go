@@ -13,7 +13,6 @@ package jsonpath
 
 import (
 	"errors"
-	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -23,6 +22,7 @@ type pathExpression func(value, root any) Iterator
 // Path is a compiled JsonPath expression.
 type Path struct {
 	expression pathExpression
+	terminal   bool
 }
 
 type pathContext struct {
@@ -52,6 +52,15 @@ func new(expression pathExpression) *Path {
 	// create path
 	return &Path{
 		expression: expression,
+		terminal:   false,
+	}
+}
+
+func terminal(expression pathExpression) *Path {
+	// create path
+	return &Path{
+		expression: expression,
+		terminal:   true,
 	}
 }
 
@@ -66,7 +75,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 		return nil, errors.New(token.val)
 
 	case lexemeIdentity, lexemeEOF:
-		return new(identity), nil
+		return terminal(identity), nil
 
 	case lexemeRoot:
 		// create sub path
@@ -101,7 +110,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 				// recursive iterator
 				it := FromValues(false, value).RecurseValues()
 				// compose iterator
-				return compose(it, allChildrenThen(subPath), root)
+				return compose(it, allChildrenThen(subPath, true), root)
 			}
 			return new(exp), nil
 
@@ -121,7 +130,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 				// recursive iterator
 				it := FromValues(false, value).RecurseValues()
 				// compose iterator
-				return compose(it, childThen(ctx, childName, subPath), root)
+				return compose(it, childThen(ctx, childName, subPath, true), root)
 			}
 			return new(exp), nil
 		}
@@ -135,7 +144,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 		// child name (remove '.')
 		childName := strings.TrimPrefix(token.val, ".")
 		// process child name
-		return childThen(ctx, childName, subPath), nil
+		return childThen(ctx, childName, subPath, false), nil
 
 	case lexemeUndottedChild:
 		// create sub path
@@ -144,7 +153,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 			return nil, err
 		}
 		// process child name
-		return childThen(ctx, token.val, subPath), nil
+		return childThen(ctx, token.val, subPath, false), nil
 
 	case lexemeBracketChild:
 		// create sub path
@@ -157,7 +166,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 		childNames = strings.TrimSuffix(strings.TrimPrefix(childNames, "["), "]")
 		childNames = strings.TrimSpace(childNames)
 		// []
-		return bracketChildThen(childNames, subPath), nil
+		return bracketChildThen(childNames, subPath, false), nil
 
 	case lexemeArraySubscript:
 		// create sub path
@@ -168,9 +177,11 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 		// remove [] from token value
 		subscript := strings.TrimSuffix(strings.TrimPrefix(token.val, "["), "]")
 		// process subscript
-		return arraySubscriptThen(subscript, subPath), nil
+		return arraySubscriptThen(ctx, subscript, subPath, false), nil
 
 	case lexemeFilterBegin, lexemeRecursiveFilterBegin:
+		// expression is not definite
+		ctx.definite = false
 		// recursive flag
 		var recursive bool
 		// update flag
@@ -212,9 +223,9 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 		}
 		// create recursive filter expression
 		if recursive {
-			return recursiveFilterThen(filterLexemes, subPath), nil
+			return recursiveFilterThen(filterLexemes, subPath, false), nil
 		}
-		return filterThen(filterLexemes, subPath), nil
+		return filterThen(filterLexemes, subPath, false), nil
 
 	case lexemePropertyName:
 		// create sub path
@@ -227,7 +238,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 		// remove '~' from child name
 		childName = strings.TrimSuffix(childName, propertyName)
 		// process property name
-		return propertyNameChildThen(childName, subPath), nil
+		return propertyNameChildThen(childName, subPath, false), nil
 
 	case lexemeBracketPropertyName:
 		// create sub path
@@ -244,7 +255,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 		// trim
 		childNames = strings.TrimSpace(childNames)
 		// process property name
-		return propertyNameBracketChildThen(childNames, subPath), nil
+		return propertyNameBracketChildThen(childNames, subPath, false), nil
 
 	case lexemeArraySubscriptPropertyName:
 		// create sub path
@@ -255,7 +266,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 		// trim '[' and ']~' from token value
 		subscript := strings.TrimSuffix(strings.TrimPrefix(token.val, "["), "]~")
 		// process property name
-		return propertyNameArraySubscriptThen(subscript, subPath), nil
+		return propertyNameArraySubscriptThen(subscript, subPath, false), nil
 	}
 	return nil, errors.New("invalid path expression")
 }
@@ -282,12 +293,12 @@ func compose(it Iterator, path *Path, root any) Iterator {
 	return FromIterators(its...)
 }
 
-func propertyNameChildThen(childName string, path *Path) *Path {
+func propertyNameChildThen(childName string, path *Path, recursive bool) *Path {
 	// unescape child name
 	childName = unescape(childName)
 	// create path expression
 	return new(func(value, root any) Iterator {
-		// check value type
+		// check value type (must be an object)
 		switch o := value.(type) {
 
 		case map[string]any:
@@ -305,51 +316,13 @@ func propertyNameChildThen(childName string, path *Path) *Path {
 	})
 }
 
-func propertyNameBracketChildThen(childNames string, path *Path) *Path {
+func propertyNameBracketChildThen(childNames string, path *Path, recursive bool) *Path {
 	// "[\"a\", \"b\", \"c\"]" => ["a", "b", "c"]
 	unquotedChildren := bracketChildNames(childNames)
 	// create path expression
 	return new(func(value, root any) Iterator {
-		// check value type
+		// check value type (only objects are allowed)
 		switch o := value.(type) {
-
-		case []any:
-			// iterators
-			its := []Iterator{}
-			// loop children
-			for _, childName := range unquotedChildren {
-				// convert child name to int
-				i, err := strconv.Atoi(childName)
-				if err != nil {
-					continue
-				}
-				// check if index is in range
-				if i >= 0 && i < len(o) {
-					// append key to iterators
-					its = append(its, FromValues(false, childName))
-				}
-			}
-			// evaluate path on keys
-			return compose(FromIterators(its...), path, root)
-
-		case ArrayIterator:
-			// iterators
-			its := []Iterator{}
-			// loop children
-			for _, childName := range unquotedChildren {
-				// convert child name to int
-				i, err := strconv.Atoi(childName)
-				if err != nil {
-					continue
-				}
-				// check if index is in range
-				if i >= 0 && i < o.Len() {
-					// append key to iterators
-					its = append(its, FromValues(false, childName))
-				}
-			}
-			// evaluate path on keys
-			return compose(FromIterators(its...), path, root)
 
 		case map[string]any:
 			// iterators
@@ -373,31 +346,13 @@ func propertyNameBracketChildThen(childNames string, path *Path) *Path {
 	})
 }
 
-func bracketChildThen(childNames string, path *Path) *Path {
+func bracketChildThen(childNames string, path *Path, recursive bool) *Path {
 	// "[\"a\", \"b\", \"c\"]" => ["a", "b", "c"]
 	unquotedChildren := bracketChildNames(childNames)
 	// iterator
 	return new(func(value, root any) Iterator {
-		// process value type
+		// process value type (it must be an object)
 		switch v := value.(type) {
-
-		case []any:
-			// iterators
-			its := make([]Iterator, 0, len(unquotedChildren))
-			// iterate children
-			for _, childName := range unquotedChildren {
-				// get index
-				i, err := strconv.Atoi(childName)
-				if err != nil {
-					continue
-				}
-				// check bounds
-				if i >= 0 && i < len(v) {
-					// append
-					its = append(its, FromValues(false, v[i]))
-				}
-			}
-			return compose(FromIterators(its...), path, root)
 
 		case map[string]any:
 			// iterators
@@ -411,22 +366,6 @@ func bracketChildThen(childNames string, path *Path) *Path {
 				}
 			}
 			return compose(FromIterators(its...), path, root)
-
-		case ArrayIterator:
-			// convert unquoted children to int slice
-			indices := make([]int, 0, len(unquotedChildren))
-			// loop children
-			for _, childName := range unquotedChildren {
-				// get index
-				i, err := strconv.Atoi(childName)
-				if err != nil {
-					// next
-					continue
-				}
-				indices = append(indices, i)
-			}
-			// evaluate path expression on values @ indices
-			return compose(v.Values(false, indices...), path, root)
 
 		case MapIterator:
 			// evaluate path expression on values @ keys
@@ -556,7 +495,7 @@ func unescape(raw string) string {
 	return esc
 }
 
-func allChildrenThen(path *Path) *Path {
+func allChildrenThen(path *Path, recursive bool) *Path {
 	// create path expression
 	return new(func(value, root any) Iterator {
 		// process value type
@@ -597,7 +536,12 @@ func allChildrenThen(path *Path) *Path {
 	})
 }
 
-func arraySubscriptThen(subscript string, path *Path) *Path {
+func arraySubscriptThen(ctx *pathContext, subscript string, path *Path, recursive bool) *Path {
+	// check for wildcard, union or range
+	if subscript == "*" || strings.Contains(subscript, ",") || strings.Contains(subscript, ":") {
+		// path is not definite
+		ctx.definite = false
+	}
 	// create path expression
 	return new(func(value, root any) Iterator {
 		// check wildcard
@@ -606,14 +550,8 @@ func arraySubscriptThen(subscript string, path *Path) *Path {
 			switch v := value.(type) {
 
 			case []any:
-				// iterators
-				its := make([]Iterator, 0, len(v))
-				// loop over array
-				for _, av := range v {
-					// append iterator
-					its = append(its, compose(FromValues(false, av), path, root))
-				}
-				return FromIterators(its...)
+				// process array below
+				break
 
 			case map[string]any:
 				// iterators
@@ -626,17 +564,19 @@ func arraySubscriptThen(subscript string, path *Path) *Path {
 				return FromIterators(its...)
 
 			case ArrayIterator:
-				// evaluate path expression on each value
-				return compose(v.Values(false), path, root)
+				// process array below
+				break
 
 			case MapIterator:
 				// evaluate path expression on each value
 				return compose(v.Values(), path, root)
+
+			default:
+				// empty
+				return empty(value, root)
 			}
-			// empty
-			return empty(value, root)
 		}
-		// process value type
+		// process value type (at this moment we process only arrays)
 		switch v := value.(type) {
 
 		case []any:
@@ -671,7 +611,7 @@ func arraySubscriptThen(subscript string, path *Path) *Path {
 	})
 }
 
-func filterThen(filterLexemes []lexeme, path *Path) *Path {
+func filterThen(filterLexemes []lexeme, path *Path, recursive bool) *Path {
 	// create filter from lexer tokens
 	filter := newFilter(newFilterNode(filterLexemes))
 	// create path expression
@@ -719,33 +659,13 @@ func filterThen(filterLexemes []lexeme, path *Path) *Path {
 	})
 }
 
-func propertyNameArraySubscriptThen(subscript string, path *Path) *Path {
+func propertyNameArraySubscriptThen(subscript string, path *Path, recursive bool) *Path {
 	// create path expression
 	return new(func(value, root any) Iterator {
 		// check wildcard
 		if subscript == "*" {
-			// process value type
+			// process value type (only objects)
 			switch v := value.(type) {
-
-			case []any:
-				// iterators
-				its := []Iterator{}
-				// loop over array indices
-				for i := range v {
-					// evaluate path expression on index
-					its = append(its, compose(FromValues(false, i), path, root))
-				}
-				return FromIterators(its...)
-
-			case ArrayIterator:
-				// iterators
-				its := []Iterator{}
-				// loop over array indices
-				for i := 0; i < v.Len(); i++ {
-					// evaluate path expression on index
-					its = append(its, compose(FromValues(false, i), path, root))
-				}
-				return FromIterators(its...)
 
 			case map[string]any:
 				// iterators
@@ -766,74 +686,98 @@ func propertyNameArraySubscriptThen(subscript string, path *Path) *Path {
 	})
 }
 
-func childThen(ctx *pathContext, childName string, path *Path) *Path {
+func childThen(ctx *pathContext, childName string, path *Path, recursive bool) *Path {
 	// check child name
 	if childName == "*" {
 		// all
-		return allChildrenThen(path)
+		return allChildrenThen(path, false)
 	}
 	// process child name
 	childName = unescape(childName)
 	// return path
 	return new(func(value, root any) Iterator {
-		// check value type
-		switch o := value.(type) {
 
-		case []any:
-			// convert child name to int
-			i, err := strconv.Atoi(childName)
-			if err != nil {
-				// not an int
-				return empty(value, root)
+		// evaluate array items
+		evaluateArrayItems := func(mv any) Iterator {
+			// process array items
+			switch v := mv.(type) {
+
+			case []any:
+				// iterators
+				its := make([]Iterator, 0, len(v)+1)
+				// evaluate path expression on array
+				its = append(its, compose(FromValues(false, v), path, root))
+				// loop over array
+				for _, av := range v {
+					// evaluate path expression on value
+					its = append(its, compose(FromValues(false, av), path, root))
+				}
+				return FromIterators(its...)
+
+			case ArrayIterator:
+				// iterators
+				its := make([]Iterator, 0, v.Len()+1)
+				// evaluate path expression on array
+				its = append(its, compose(FromValues(false, v), path, root))
+				// iterator
+				it := v.Values(false)
+				// loop values
+				for av, ok := it(); ok; av, ok = it() {
+					// evaluate path expression on value
+					its = append(its, compose(FromValues(false, av), path, root))
+				}
+				return FromIterators(its...)
+
+			default:
+				// return iterator
+				return compose(FromValues(false, mv), path, root)
 			}
-			// check index
-			if i >= 0 && i < len(o) {
-				// evaluate path expression on value @ index
-				return compose(FromValues(false, o[i]), path, root)
-			}
+		}
+
+		// check value type (it must be an object)
+		switch o := value.(type) {
 
 		case map[string]any:
 			// find key in map
-			if v, ok := o[childName]; ok {
+			if mv, ok := o[childName]; ok {
+				// check we are in recursive mode and path is not terminal
+				if recursive && !path.terminal {
+					// evaluate array items
+					return evaluateArrayItems(mv)
+				}
 				// return iterator
-				return compose(FromValues(false, v), path, root)
+				return compose(FromValues(false, mv), path, root)
 			}
-			// check we need to return null for missing leaf
-			if ctx.returnNullForMissingLeaf {
+			// check we need to return null for missing leaf (this is a terminal path)
+			if ctx.returnNullForMissingLeaf && path.terminal {
 				// null value
 				return FromValues(false, nil)
 			}
 
-		case ArrayIterator:
-			// convert child name to int
-			i, err := strconv.Atoi(childName)
-			if err != nil {
-				// not an int
-				return empty(value, root)
-			}
-			// check index
-			if i >= 0 && i < o.Len() {
-				// evaluate path expression on value @ index
-				return compose(o.Values(false, i), path, root)
-			}
-
 		case MapIterator:
-			// check we need to return null for missing leaf
-			if ctx.returnNullForMissingLeaf {
-				// check key exists in map
-				if _, ok := o.Keys(childName)(); !ok {
-					// null value
-					return FromValues(false, nil)
+			// iterator
+			it := o.Values(childName)
+			// find value in map
+			if mv, ok := it(); ok {
+				// check we are in recursive mode and path is not terminal
+				if recursive && !path.terminal {
+					// evaluate array items
+					return evaluateArrayItems(mv)
 				}
+				// return iterator
+				return compose(FromValues(false, mv), path, root)
 			}
-			// evaluate path expression on each value
-			return compose(o.Values(childName), path, root)
+			// check we need to return null for missing leaf (this is a terminal path)
+			if ctx.returnNullForMissingLeaf && path.terminal {
+				// null value
+				return FromValues(false, nil)
+			}
 		}
 		return empty(value, root)
 	})
 }
 
-func recursiveFilterThen(filterLexemes []lexeme, path *Path) *Path {
+func recursiveFilterThen(filterLexemes []lexeme, path *Path, recursive bool) *Path {
 	// create filter
 	filter := newFilter(newFilterNode(filterLexemes))
 	// create path expression
