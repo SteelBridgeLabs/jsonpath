@@ -94,11 +94,8 @@ func TestIdentityStructPath(t *testing.T) {
 	value := Array{}
 	path, _ := NewPath("")
 	// act
-	result, err := path.Evaluate(value)
+	result := path.Evaluate(value)
 	// assert
-	if err != nil {
-		t.Error(err)
-	}
 	if len(result) != 1 {
 		t.Error("expected 1 result")
 	}
@@ -112,11 +109,8 @@ func TestRootStructPath(t *testing.T) {
 	value := Array{1, 2, 3}
 	path, _ := NewPath("$")
 	// act
-	result, err := path.Evaluate(value)
+	result := path.Evaluate(value)
 	// assert
-	if err != nil {
-		t.Error(err)
-	}
 	if len(result) != 1 {
 		t.Error("expected 1 result")
 	}
@@ -130,11 +124,8 @@ func TestDotChildStructPath1(t *testing.T) {
 	value := Array{1, 2, 3}
 	path, _ := NewPath("$.*")
 	// act
-	result, err := path.Evaluate(value)
+	result := path.Evaluate(value)
 	// assert
-	if err != nil {
-		t.Error(err)
-	}
 	if diff := cmp.Diff([]any{1, 2, 3}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
@@ -145,11 +136,8 @@ func TestDotChildStructPath2(t *testing.T) {
 	value := Object{"a": "va", "b": "vb", "c": "vc"}
 	path, _ := NewPath("$.*")
 	// act
-	result, err := path.Evaluate(value)
+	result := path.Evaluate(value)
 	// assert
-	if err != nil {
-		t.Error(err)
-	}
 	if diff := cmp.Diff([]any{"va", "vb", "vc"}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
@@ -160,11 +148,8 @@ func TestDotChildStructPath3(t *testing.T) {
 	value := Object{"a": "test"}
 	path, _ := NewPath("$.a")
 	// act
-	result, err := path.Evaluate(value)
+	result := path.Evaluate(value)
 	// assert
-	if err != nil {
-		t.Error(err)
-	}
 	if diff := cmp.Diff([]any{"test"}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
@@ -175,11 +160,8 @@ func TestRecursiveDescentStructPath1(t *testing.T) {
 	value := Object{"x": Object{"a": "test"}}
 	path, _ := NewPath("$..a")
 	// act
-	result, err := path.Evaluate(value)
+	result := path.Evaluate(value)
 	// assert
-	if err != nil {
-		t.Error(err)
-	}
 	if diff := cmp.Diff([]any{"test"}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
@@ -190,11 +172,8 @@ func TestRecursiveDescentStructPath2(t *testing.T) {
 	value := Array{0, 1, Array{10, 11}}
 	path, _ := NewPath("$..[1]")
 	// act
-	result, err := path.Evaluate(value)
+	result := path.Evaluate(value)
 	// assert
-	if err != nil {
-		t.Error(err)
-	}
 	if diff := cmp.Diff([]any{1, 11}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
@@ -205,11 +184,8 @@ func TestRecursiveDescentStructPath3(t *testing.T) {
 	value := Object{"x": Object{"a": "test1"}, "y": Object{"a": "test2"}}
 	path, _ := NewPath("$..*")
 	// act
-	result, err := path.Evaluate(value)
+	result := path.Evaluate(value)
 	// assert
-	if err != nil {
-		t.Error(err)
-	}
 	if diff := cmp.Diff([]any{Object{"a": "test1"}, Object{"a": "test2"}, "test2", "test1"}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
@@ -220,11 +196,8 @@ func TestUndottedChildStructPath1(t *testing.T) {
 	value := Object{"x": Object{"a": "test1"}, "y": Object{"a": "test2"}}
 	path, _ := NewPath("x")
 	// act
-	result, err := path.Evaluate(value)
+	result := path.Evaluate(value)
 	// assert
-	if err != nil {
-		t.Error(err)
-	}
 	if diff := cmp.Diff([]any{Object{"a": string("test1")}}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
@@ -235,11 +208,8 @@ func TestUndottedChildStructPath2(t *testing.T) {
 	value := Object{"x": Object{"a": "test1"}, "y": Object{"a": "test2"}}
 	path, _ := NewPath("x~")
 	// act
-	result, err := path.Evaluate(value)
+	result := path.Evaluate(value)
 	// assert
-	if err != nil {
-		t.Error(err)
-	}
 	if diff := cmp.Diff([]any{"x"}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
@@ -250,11 +220,8 @@ func TestBracketChildStructPath1(t *testing.T) {
 	value := Object{"x": Object{"a": "test1"}, "y": Object{"a": "test2"}}
 	path, _ := NewPath(`x["a"]`)
 	// act
-	result, err := path.Evaluate(value)
+	result := path.Evaluate(value)
 	// assert
-	if err != nil {
-		t.Error(err)
-	}
 	if diff := cmp.Diff([]any{"test1"}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
@@ -265,11 +232,8 @@ func TestBracketChildStructPath2(t *testing.T) {
 	value := Array{1, 2, 3}
 	path, _ := NewPath(`["1", "a"]`)
 	// act
-	result, err := path.Evaluate(value)
+	result := path.Evaluate(value)
 	// assert
-	if err != nil {
-		t.Error(err)
-	}
 	if diff := cmp.Diff([]any{2}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
@@ -280,11 +244,8 @@ func TestBracketChildStructPath3(t *testing.T) {
 	value := Object{"x": Object{"a": "test1"}, "y": Object{"a": "test2"}}
 	path, _ := NewPath(`x["a"]~`)
 	// act
-	result, err := path.Evaluate(value)
+	result := path.Evaluate(value)
 	// assert
-	if err != nil {
-		t.Error(err)
-	}
 	if diff := cmp.Diff([]any{"a"}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}

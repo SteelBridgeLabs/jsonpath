@@ -25,19 +25,27 @@ type Path struct {
 	expression pathExpression
 }
 
+type pathContext struct {
+	definite                 bool
+	returnNullForMissingLeaf bool
+	returnList               bool
+}
+
 // NewPath constructs a Path from a JsonPath expression.
 func NewPath(path string) (*Path, error) {
 	// create lexer
 	lexer := lex("default", path)
+	// create path context, use defaults
+	ctx := &pathContext{}
 	// create path instance
-	return createPath(lexer)
+	return createPath(ctx, lexer)
 }
 
-func (p *Path) Evaluate(value any) ([]any, error) {
+func (p *Path) Evaluate(value any) []any {
 	// evaluate path
 	it := p.expression(value, value)
 	// to array, never return an error here! (panic if error is returned)
-	return it.ToSlice(), nil
+	return it.ToSlice()
 }
 
 func new(expression pathExpression) *Path {
@@ -47,7 +55,7 @@ func new(expression pathExpression) *Path {
 	}
 }
 
-func createPath(lexer *lexer) (*Path, error) {
+func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 	// get next token from lexer
 	token := lexer.nextLexeme()
 
@@ -62,7 +70,7 @@ func createPath(lexer *lexer) (*Path, error) {
 
 	case lexemeRoot:
 		// create sub path
-		subPath, err := createPath(lexer)
+		subPath, err := createPath(ctx, lexer)
 		if err != nil {
 			return nil, err
 		}
@@ -75,8 +83,10 @@ func createPath(lexer *lexer) (*Path, error) {
 		return new(exp), nil
 
 	case lexemeRecursiveDescent:
+		// expression is not definite
+		ctx.definite = false
 		// create sub path
-		subPath, err := createPath(lexer)
+		subPath, err := createPath(ctx, lexer)
 		if err != nil {
 			return nil, err
 		}
@@ -111,34 +121,34 @@ func createPath(lexer *lexer) (*Path, error) {
 				// recursive iterator
 				it := FromValues(false, value).RecurseValues()
 				// compose iterator
-				return compose(it, childThen(childName, subPath), root)
+				return compose(it, childThen(ctx, childName, subPath), root)
 			}
 			return new(exp), nil
 		}
 
 	case lexemeDotChild:
 		// create sub path
-		subPath, err := createPath(lexer)
+		subPath, err := createPath(ctx, lexer)
 		if err != nil {
 			return nil, err
 		}
 		// child name (remove '.')
 		childName := strings.TrimPrefix(token.val, ".")
 		// process child name
-		return childThen(childName, subPath), nil
+		return childThen(ctx, childName, subPath), nil
 
 	case lexemeUndottedChild:
 		// create sub path
-		subPath, err := createPath(lexer)
+		subPath, err := createPath(ctx, lexer)
 		if err != nil {
 			return nil, err
 		}
 		// process child name
-		return childThen(token.val, subPath), nil
+		return childThen(ctx, token.val, subPath), nil
 
 	case lexemeBracketChild:
 		// create sub path
-		subPath, err := createPath(lexer)
+		subPath, err := createPath(ctx, lexer)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +161,7 @@ func createPath(lexer *lexer) (*Path, error) {
 
 	case lexemeArraySubscript:
 		// create sub path
-		subPath, err := createPath(lexer)
+		subPath, err := createPath(ctx, lexer)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +206,7 @@ func createPath(lexer *lexer) (*Path, error) {
 			filterLexemes = append(filterLexemes, lx)
 		}
 		// create sub path expression
-		subPath, err := createPath(lexer)
+		subPath, err := createPath(ctx, lexer)
 		if err != nil {
 			return nil, err
 		}
@@ -208,7 +218,7 @@ func createPath(lexer *lexer) (*Path, error) {
 
 	case lexemePropertyName:
 		// create sub path
-		subPath, err := createPath(lexer)
+		subPath, err := createPath(ctx, lexer)
 		if err != nil {
 			return nil, err
 		}
@@ -221,7 +231,7 @@ func createPath(lexer *lexer) (*Path, error) {
 
 	case lexemeBracketPropertyName:
 		// create sub path
-		subPath, err := createPath(lexer)
+		subPath, err := createPath(ctx, lexer)
 		if err != nil {
 			return nil, err
 		}
@@ -238,7 +248,7 @@ func createPath(lexer *lexer) (*Path, error) {
 
 	case lexemeArraySubscriptPropertyName:
 		// create sub path
-		subPath, err := createPath(lexer)
+		subPath, err := createPath(ctx, lexer)
 		if err != nil {
 			return nil, err
 		}
@@ -251,10 +261,6 @@ func createPath(lexer *lexer) (*Path, error) {
 }
 
 func identity(value any, root any) Iterator {
-	// check value, TODO: value == nil is a valid case in Json
-	// if value == nil {
-	// 	return FromValues(false)
-	// }
 	// return iterator
 	return FromValues(false, value)
 }
@@ -760,7 +766,7 @@ func propertyNameArraySubscriptThen(subscript string, path *Path) *Path {
 	})
 }
 
-func childThen(childName string, path *Path) *Path {
+func childThen(ctx *pathContext, childName string, path *Path) *Path {
 	// check child name
 	if childName == "*" {
 		// all
@@ -792,6 +798,11 @@ func childThen(childName string, path *Path) *Path {
 				// return iterator
 				return compose(FromValues(false, v), path, root)
 			}
+			// check we need to return null for missing leaf
+			if ctx.returnNullForMissingLeaf {
+				// null value
+				return FromValues(false, nil)
+			}
 
 		case ArrayIterator:
 			// convert child name to int
@@ -807,6 +818,14 @@ func childThen(childName string, path *Path) *Path {
 			}
 
 		case MapIterator:
+			// check we need to return null for missing leaf
+			if ctx.returnNullForMissingLeaf {
+				// check key exists in map
+				if _, ok := o.Keys(childName)(); !ok {
+					// null value
+					return FromValues(false, nil)
+				}
+			}
 			// evaluate path expression on each value
 			return compose(o.Values(childName), path, root)
 		}

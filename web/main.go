@@ -138,10 +138,7 @@ textarea, input {
 			return
 		}
 
-		results, err := path.Evaluate(value)
-		if err != nil {
-			respondWithError(w, err)
-		}
+		results := path.Evaluate(value)
 
 		// encode results
 		op.Output, _ = encode(results)
