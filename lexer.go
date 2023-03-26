@@ -136,9 +136,28 @@ func (l lexeme) literalValue() typedValue {
 		}
 
 	case lexemeFilterRegularExpressionLiteral:
+		// literal value, posible values: /regex/, /regex/i
+		value := l.val
+		// check last character
+		if strings.HasSuffix(value, "/") {
+			// remove '/' from first and last characters, sanitize value
+			value = strings.ReplaceAll(value[1:len(value)-1], `\/`, `/`)
+			// create typed value
+			return typedValue{
+				typ: regularExpressionValueType,
+				val: value,
+			}
+		}
+		// last '/'
+		index := strings.LastIndex(value, "/")
+		// flags
+		flags := value[index+1:]
+		// remove first and last '/', sanitize value
+		value = strings.ReplaceAll(value[1:index], `\/`, `/`)
+		// create typed value
 		return typedValue{
 			typ: regularExpressionValueType,
-			val: sanitiseRegularExpressionLiteral(l.val),
+			val: "(?" + flags + ")" + value,
 		}
 
 	default:
@@ -1006,11 +1025,34 @@ func lexRegularExpressionLiteral(l *lexer, nextState stateFn) stateFn {
 			escape = false
 		}
 	}
-	l.next()
-	if _, err := regexp.Compile(sanitiseRegularExpressionLiteral(l.value())); err != nil {
+	// advance lexer
+	if l.next() != eof {
+		// sanitize regex, remove first and last '/'
+		regex := sanitiseRegularExpressionLiteral(l.value())
+		// check current character is one of the regex flags
+		ch := l.input[l.pos : l.pos+1]
+		switch ch {
+		case "i", "m", "s", "U":
+			// compile regex
+			if _, err := regexp.Compile("(?" + ch + ")" + regex); err != nil {
+				return l.rawErrorf(`invalid regular expression at position %d, following %q: %s`, pos, context, err)
+			}
+			// advance lexer
+			l.next()
+			// emit lexeme
+			l.emit(lexemeFilterRegularExpressionLiteral)
+			// next
+			return nextState
+		}
+	}
+	// sanitize regex
+	regex := sanitiseRegularExpressionLiteral(l.value())
+	// compile regex
+	if _, err := regexp.Compile(regex); err != nil {
 		return l.rawErrorf(`invalid regular expression at position %d, following %q: %s`, pos, context, err)
 	}
+	// emit lexeme
 	l.emit(lexemeFilterRegularExpressionLiteral)
-
+	// next
 	return nextState
 }
