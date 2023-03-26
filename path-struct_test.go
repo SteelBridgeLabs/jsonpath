@@ -325,3 +325,61 @@ func TestFilterOnRecursiveDescentStructPath1(t *testing.T) {
 		t.Errorf("invalid result: %s", diff)
 	}
 }
+
+func TestFilterOnRecursiveDescentStructPath2(t *testing.T) {
+	// arrange
+	value := Object{
+		"store": Object{
+			"book": Array{
+				Object{
+					"category": "reference",
+					"author":   "Nigel Rees",
+					"title":    "Sayings of the Century",
+					"price":    8.95,
+				},
+				Object{
+					"category": "fiction",
+					"author":   "Evelyn Waugh",
+					"title":    "Sword of Honour",
+					"price":    12.99,
+				},
+				Object{
+					"category": "fiction",
+					"author":   "Herman Melville",
+					"title":    "Moby Dick",
+					"isbn":     "0-553-21311-3",
+					"price":    8.99,
+				},
+				Object{
+					"category": "fiction",
+					"author":   "J. R. R. Tolkien",
+					"title":    "The Lord of the Rings",
+					"isbn":     "0-395-19395-8",
+					"price":    22.99,
+				},
+			},
+			"bicycle": Object{
+				"color": "red",
+				"price": 19.95,
+			},
+		},
+	}
+	path, err := NewPath(`$..book[?(@.author =~ /(?i).*REES/)]`)
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
+	expected := []any{
+		Object{
+			"category": "reference",
+			"author":   "Nigel Rees",
+			"title":    "Sayings of the Century",
+			"price":    8.95,
+		},
+	}
+	// act
+	result := path.Evaluate(value)
+	// assert
+	if diff := cmp.Diff(expected, result); diff != "" {
+		t.Errorf("invalid result: %s", diff)
+	}
+}

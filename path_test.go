@@ -15,7 +15,10 @@ import (
 func TestIdentityPath(t *testing.T) {
 	// arrange
 	value := 1
-	path, _ := NewPath("")
+	path, err := NewPath("")
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -30,7 +33,10 @@ func TestIdentityPath(t *testing.T) {
 func TestRootPath(t *testing.T) {
 	// arrange
 	value := []any{1, 2, 3}
-	path, _ := NewPath("$")
+	path, err := NewPath("$")
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -45,7 +51,10 @@ func TestRootPath(t *testing.T) {
 func TestDotChildPath1(t *testing.T) {
 	// arrange
 	value := []any{1, 2, 3}
-	path, _ := NewPath("$.*")
+	path, err := NewPath("$.*")
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -57,7 +66,10 @@ func TestDotChildPath1(t *testing.T) {
 func TestDotChildPath2(t *testing.T) {
 	// arrange
 	value := map[string]any{"a": "va", "b": "vb", "c": "vc"}
-	path, _ := NewPath("$.*")
+	path, err := NewPath("$.*")
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -69,7 +81,10 @@ func TestDotChildPath2(t *testing.T) {
 func TestDotChildPath3(t *testing.T) {
 	// arrange
 	value := map[string]any{"a": "test"}
-	path, _ := NewPath("$.a")
+	path, err := NewPath("$.a")
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -81,7 +96,10 @@ func TestDotChildPath3(t *testing.T) {
 func TestRecursiveDescentPath1(t *testing.T) {
 	// arrange
 	value := map[string]any{"x": map[string]any{"a": "test"}}
-	path, _ := NewPath("$..a")
+	path, err := NewPath("$..a")
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -93,7 +111,10 @@ func TestRecursiveDescentPath1(t *testing.T) {
 func TestRecursiveDescentPath2(t *testing.T) {
 	// arrange
 	value := []any{0, 1, []any{10, 11}}
-	path, _ := NewPath("$..[1]")
+	path, err := NewPath("$..[1]")
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -105,7 +126,10 @@ func TestRecursiveDescentPath2(t *testing.T) {
 func TestRecursiveDescentPath3(t *testing.T) {
 	// arrange
 	value := map[string]any{"x": map[string]any{"a": "test1"}, "y": map[string]any{"a": "test2"}}
-	path, _ := NewPath("$..*")
+	path, err := NewPath("$..*")
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -117,7 +141,10 @@ func TestRecursiveDescentPath3(t *testing.T) {
 func TestUndottedChildPath1(t *testing.T) {
 	// arrange
 	value := map[string]any{"x": map[string]any{"a": "test1"}, "y": map[string]any{"a": "test2"}}
-	path, _ := NewPath("x")
+	path, err := NewPath("x")
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -129,7 +156,10 @@ func TestUndottedChildPath1(t *testing.T) {
 func TestUndottedChildPath2(t *testing.T) {
 	// arrange
 	value := map[string]any{"x": map[string]any{"a": "test1"}, "y": map[string]any{"a": "test2"}}
-	path, _ := NewPath("x~")
+	path, err := NewPath("x~")
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -141,7 +171,10 @@ func TestUndottedChildPath2(t *testing.T) {
 func TestBracketChildPath1(t *testing.T) {
 	// arrange
 	value := map[string]any{"x": map[string]any{"a": "test1"}, "y": map[string]any{"a": "test2"}}
-	path, _ := NewPath(`x["a"]`)
+	path, err := NewPath(`x["a"]`)
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -153,7 +186,10 @@ func TestBracketChildPath1(t *testing.T) {
 func TestBracketChildPath2(t *testing.T) {
 	// arrange
 	value := []any{1, 2, 3}
-	path, _ := NewPath(`["1", "a"]`)
+	path, err := NewPath(`["1", "a"]`)
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -165,7 +201,10 @@ func TestBracketChildPath2(t *testing.T) {
 func TestBracketChildPath3(t *testing.T) {
 	// arrange
 	value := map[string]any{"x": map[string]any{"a": "test1"}, "y": map[string]any{"a": "test2"}}
-	path, _ := NewPath(`x["a"]~`)
+	path, err := NewPath(`x["a"]~`)
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -177,7 +216,10 @@ func TestBracketChildPath3(t *testing.T) {
 func TestBracketChildPath4(t *testing.T) {
 	// arrange
 	value := []any{1, 2, 3}
-	path, _ := NewPath(`["1"]~`)
+	path, err := NewPath(`["1"]~`)
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	// act
 	result := path.Evaluate(value)
 	// assert
@@ -224,7 +266,10 @@ func TestFilterOnRecursiveDescentPath1(t *testing.T) {
 			},
 		},
 	}
-	path, _ := NewPath(`$..book[?(@.isbn)]`)
+	path, err := NewPath(`$..book[?(@.isbn)]`)
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
 	expected := []any{
 		map[string]any{
 			"category": "fiction",
@@ -239,6 +284,64 @@ func TestFilterOnRecursiveDescentPath1(t *testing.T) {
 			"title":    "The Lord of the Rings",
 			"isbn":     "0-395-19395-8",
 			"price":    22.99,
+		},
+	}
+	// act
+	result := path.Evaluate(value)
+	// assert
+	if diff := cmp.Diff(expected, result); diff != "" {
+		t.Errorf("invalid result: %s", diff)
+	}
+}
+
+func TestFilterOnRecursiveDescentPath2(t *testing.T) {
+	// arrange
+	value := map[string]any{
+		"store": map[string]any{
+			"book": []any{
+				map[string]any{
+					"category": "reference",
+					"author":   "Nigel Rees",
+					"title":    "Sayings of the Century",
+					"price":    8.95,
+				},
+				map[string]any{
+					"category": "fiction",
+					"author":   "Evelyn Waugh",
+					"title":    "Sword of Honour",
+					"price":    12.99,
+				},
+				map[string]any{
+					"category": "fiction",
+					"author":   "Herman Melville",
+					"title":    "Moby Dick",
+					"isbn":     "0-553-21311-3",
+					"price":    8.99,
+				},
+				map[string]any{
+					"category": "fiction",
+					"author":   "J. R. R. Tolkien",
+					"title":    "The Lord of the Rings",
+					"isbn":     "0-395-19395-8",
+					"price":    22.99,
+				},
+			},
+			"bicycle": map[string]any{
+				"color": "red",
+				"price": 19.95,
+			},
+		},
+	}
+	path, err := NewPath(`$..book[?(@.author =~ /(?i).*REES/)]`)
+	if err != nil {
+		t.Errorf("invalid path: %s", err)
+	}
+	expected := []any{
+		map[string]any{
+			"category": "reference",
+			"author":   "Nigel Rees",
+			"title":    "Sayings of the Century",
+			"price":    8.95,
 		},
 	}
 	// act
