@@ -19,16 +19,26 @@ import (
 
 type pathExpression func(value, root any) Iterator
 
+type setExpression func(value any)
+
 // Path is a compiled JsonPath expression.
 type Path struct {
 	expression pathExpression
 	terminal   bool
 }
 
+type executionMode int
+
+const (
+	getMode executionMode = iota
+	setMode
+)
+
 type pathContext struct {
 	definite                 bool
 	returnNullForMissingLeaf bool
 	returnList               bool
+	mode                     executionMode
 }
 
 // NewPath constructs a Path from a JsonPath expression.
@@ -61,6 +71,20 @@ func terminal(expression pathExpression) *Path {
 	return &Path{
 		expression: expression,
 		terminal:   true,
+	}
+}
+
+func createMapSetter(object map[string]any, key string) setExpression {
+	// create setter
+	return func(value any) {
+		object[key] = value
+	}
+}
+
+func createArraySetter(array []any, index int) setExpression {
+	// create setter
+	return func(value any) {
+		array[index] = value
 	}
 }
 
@@ -110,7 +134,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 				// recursive iterator
 				it := FromValues(false, value).RecurseValues()
 				// compose iterator
-				return compose(it, allChildrenThen(subPath, true), root)
+				return compose(it, allChildrenThen(subPath), root)
 			}
 			return new(exp), nil
 
@@ -339,8 +363,12 @@ func propertyNameBracketChildThen(childNames string, path *Path, recursive bool)
 			return compose(FromIterators(its...), path, root)
 
 		case MapIterator:
-			// evaluate path expression on keys
-			return compose(o.Keys(unquotedChildren...), path, root)
+			// check we have keys to evaluate
+			if len(unquotedChildren) > 0 {
+				// evaluate path expression on keys
+				return compose(o.Keys(unquotedChildren...), path, root)
+			}
+			return empty(value, root)
 		}
 		return empty(value, root)
 	})
@@ -368,8 +396,12 @@ func bracketChildThen(childNames string, path *Path, recursive bool) *Path {
 			return compose(FromIterators(its...), path, root)
 
 		case MapIterator:
-			// evaluate path expression on values @ keys
-			return compose(v.Values(unquotedChildren...), path, root)
+			// check we have keys to evaluate
+			if len(unquotedChildren) > 0 {
+				// evaluate path expression on values @ keys
+				return compose(v.Values(unquotedChildren...), path, root)
+			}
+			return empty(value, root)
 		}
 		// empty iterator
 		return empty(value, root)
@@ -495,7 +527,7 @@ func unescape(raw string) string {
 	return esc
 }
 
-func allChildrenThen(path *Path, recursive bool) *Path {
+func allChildrenThen(path *Path) *Path {
 	// create path expression
 	return new(func(value, root any) Iterator {
 		// process value type
@@ -585,6 +617,20 @@ func arraySubscriptThen(ctx *pathContext, subscript string, path *Path, recursiv
 			if err != nil {
 				panic(err) // should not happen, lexer should have detected errors
 			}
+			// check path is terminal and we are setting a value
+			if ctx.mode == setMode && path.terminal {
+				// setters
+				setters := make([]any, 0, len(slice))
+				// iterate indexes
+				for _, i := range slice {
+					// check index
+					if i >= 0 && i < len(v) {
+						// append index setter
+						setters = append(setters, createArraySetter(v, i))
+					}
+				}
+				return FromValues(false, setters...)
+			}
 			// iterators
 			its := make([]Iterator, 0, len(slice))
 			// iterate indexes
@@ -603,8 +649,13 @@ func arraySubscriptThen(ctx *pathContext, subscript string, path *Path, recursiv
 			if err != nil {
 				panic(err) // should not happen, lexer should have detected errors
 			}
-			// evaluate path expression on values @ indexes
-			return compose(v.Values(false, slice...), path, root)
+			// check slice contain indexes
+			if len(slice) > 0 {
+				// evaluate path expression on values @ indexes
+				return compose(v.Values(false, slice...), path, root)
+			}
+			// empty
+			return empty(value, root)
 		}
 		// empty
 		return empty(value, root)
@@ -690,7 +741,7 @@ func childThen(ctx *pathContext, childName string, path *Path, recursive bool) *
 	// check child name
 	if childName == "*" {
 		// all
-		return allChildrenThen(path, false)
+		return allChildrenThen(path)
 	}
 	// process child name
 	childName = unescape(childName)
@@ -738,6 +789,11 @@ func childThen(ctx *pathContext, childName string, path *Path, recursive bool) *
 		switch o := value.(type) {
 
 		case map[string]any:
+			// check path is terminal and we are setting a value
+			if ctx.mode == setMode && path.terminal {
+				// map setter
+				return FromValues(false, createMapSetter(o, childName))
+			}
 			// find key in map
 			if mv, ok := o[childName]; ok {
 				// check we are in recursive mode and path is not terminal

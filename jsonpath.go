@@ -10,6 +10,7 @@ func Get(data any, expression string, options ...Option) (any, error) {
 	// initial context
 	ctx := &pathContext{
 		definite: true,
+		mode:     getMode,
 	}
 	// process options
 	for _, option := range options {
@@ -20,7 +21,7 @@ func Get(data any, expression string, options ...Option) (any, error) {
 		}
 	}
 	// create lexer
-	lexer := lex("default", expression)
+	lexer := lex("get", expression)
 	// create Path
 	path, err := createPath(ctx, lexer)
 	if err != nil {
@@ -35,15 +36,44 @@ func Get(data any, expression string, options ...Option) (any, error) {
 		// return result
 		return result, nil
 	}
-	// check execution is definite and we have a single result
-	if ctx.definite && len(result) == 1 {
-		// return single result
-		return result[0], nil
+	// check execution is definite
+	if ctx.definite {
+		// check number of values in result
+		switch len(result) {
+		case 0:
+			return nil, nil
+		case 1:
+			return result[0], nil
+		default:
+			return result, nil
+		}
 	}
 	// return result
 	return result, nil
 }
 
 func Set(data any, expression string, value any, options ...Option) error {
+	// initial context
+	ctx := &pathContext{
+		definite: true,
+		mode:     setMode,
+	}
+	// create lexer
+	lexer := lex("set", expression)
+	// create Path
+	path, err := createPath(ctx, lexer)
+	if err != nil {
+		return err
+	}
+	// evaluate it
+	it := path.expression(data, data)
+	// loop iterator
+	for r, ok := it(); ok; r, ok = it() {
+		// current iterator value must be setExpression
+		if f, ok := r.(setExpression); ok {
+			// set value
+			f(value)
+		}
+	}
 	return nil
 }
