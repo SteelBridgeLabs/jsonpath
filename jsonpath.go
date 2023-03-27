@@ -21,7 +21,7 @@ func Get(data any, expression string, options ...Option) (any, error) {
 		}
 	}
 	// create lexer
-	lexer := lex("get", expression)
+	lexer := lex(expression)
 	// create Path
 	path, err := createPath(ctx, lexer)
 	if err != nil {
@@ -59,7 +59,7 @@ func Set(data any, expression string, value any, options ...Option) error {
 		mode:     setMode,
 	}
 	// create lexer
-	lexer := lex("set", expression)
+	lexer := lex(expression)
 	// create Path
 	path, err := createPath(ctx, lexer)
 	if err != nil {

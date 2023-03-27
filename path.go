@@ -17,13 +17,13 @@ import (
 	"unicode/utf8"
 )
 
-type pathExpression func(value, root any) Iterator
+type getExpression func(value, root any) Iterator
 
 type setExpression func(value any)
 
 // Path is a compiled JsonPath expression.
 type Path struct {
-	expression pathExpression
+	expression getExpression
 	terminal   bool
 }
 
@@ -44,7 +44,7 @@ type pathContext struct {
 // NewPath constructs a Path from a JsonPath expression.
 func NewPath(path string) (*Path, error) {
 	// create lexer
-	lexer := lex("default", path)
+	lexer := lex(path)
 	// create path context, use defaults
 	ctx := &pathContext{}
 	// create path instance
@@ -58,7 +58,7 @@ func (p *Path) Evaluate(value any) []any {
 	return it.ToSlice()
 }
 
-func new(expression pathExpression) *Path {
+func new(expression getExpression) *Path {
 	// create path
 	return &Path{
 		expression: expression,
@@ -66,7 +66,7 @@ func new(expression pathExpression) *Path {
 	}
 }
 
-func terminal(expression pathExpression) *Path {
+func terminal(expression getExpression) *Path {
 	// create path
 	return &Path{
 		expression: expression,
@@ -120,7 +120,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 				// recursive iterator
 				it := FromValues(false, value).RecurseValues()
 				// compose iterator
-				return compose(it, allChildrenThen(subPath), root)
+				return compose(it, allChildrenThen(ctx, subPath), root)
 			}
 			return new(exp), nil
 
@@ -176,7 +176,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 		childNames = strings.TrimSuffix(strings.TrimPrefix(childNames, "["), "]")
 		childNames = strings.TrimSpace(childNames)
 		// []
-		return bracketChildThen(childNames, subPath, false), nil
+		return bracketChildThen(ctx, childNames, subPath, false), nil
 
 	case lexemeArraySubscript:
 		// create sub path
@@ -360,7 +360,7 @@ func propertyNameBracketChildThen(childNames string, path *Path, recursive bool)
 	})
 }
 
-func bracketChildThen(childNames string, path *Path, recursive bool) *Path {
+func bracketChildThen(ctx *pathContext, childNames string, path *Path, recursive bool) *Path {
 	// "[\"a\", \"b\", \"c\"]" => ["a", "b", "c"]
 	unquotedChildren := bracketChildNames(childNames)
 	// iterator
@@ -369,6 +369,24 @@ func bracketChildThen(childNames string, path *Path, recursive bool) *Path {
 		switch v := value.(type) {
 
 		case map[string]any:
+			// check path is terminal and we are setting a value
+			if ctx.mode == setMode && path.terminal {
+				// setters
+				setters := make([]any, 0, len(unquotedChildren))
+				// iterate children
+				for _, childName := range unquotedChildren {
+					// capture key
+					key := childName
+					// map setter
+					var setter setExpression = func(value any) {
+						// set value
+						v[key] = value
+					}
+					// append iterator
+					setters = append(setters, setter)
+				}
+				return FromValues(false, setters...)
+			}
 			// iterators
 			its := make([]Iterator, 0, len(unquotedChildren))
 			// iterate children
@@ -382,6 +400,24 @@ func bracketChildThen(childNames string, path *Path, recursive bool) *Path {
 			return compose(FromIterators(its...), path, root)
 
 		case Map:
+			// check path is terminal and we are setting a value
+			if ctx.mode == setMode && path.terminal {
+				// setters
+				setters := make([]any, 0, len(unquotedChildren))
+				// iterate children
+				for _, childName := range unquotedChildren {
+					// capture key
+					key := childName
+					// map setter
+					var setter setExpression = func(value any) {
+						// set value
+						v.Set(key, value)
+					}
+					// append iterator
+					setters = append(setters, setter)
+				}
+				return FromValues(false, setters...)
+			}
 			// check we have keys to evaluate
 			if len(unquotedChildren) > 0 {
 				// evaluate path expression on values @ keys
@@ -513,13 +549,29 @@ func unescape(raw string) string {
 	return esc
 }
 
-func allChildrenThen(path *Path) *Path {
+func allChildrenThen(ctx *pathContext, path *Path) *Path {
 	// create path expression
 	return new(func(value, root any) Iterator {
 		// process value type
 		switch v := value.(type) {
 
 		case map[string]any:
+			// check path is terminal and we are setting a value
+			if ctx.mode == setMode && path.terminal {
+				// setters
+				setters := make([]any, 0, len(v))
+				// iterate map
+				loopMap(v, func(k string, _ any) {
+					// map setter
+					var setter setExpression = func(value any) {
+						// set value
+						v[k] = value
+					}
+					// append iterator
+					setters = append(setters, setter)
+				})
+				return FromValues(false, setters...)
+			}
 			// iterators
 			its := make([]Iterator, 0, len(v))
 			// iterate map
@@ -530,6 +582,26 @@ func allChildrenThen(path *Path) *Path {
 			return FromIterators(its...)
 
 		case []any:
+			// check path is terminal and we are setting a value
+			if ctx.mode == setMode && path.terminal {
+				// length
+				length := len(v)
+				// setters
+				setters := make([]any, 0, length)
+				// loop over array indexes
+				for i := 0; i < length; i++ {
+					// capture index
+					index := i
+					// array setter
+					var setter setExpression = func(value any) {
+						// set value
+						v[index] = value
+					}
+					// append iterator
+					setters = append(setters, setter)
+				}
+				return FromValues(false, setters...)
+			}
 			// iterators
 			its := make([]Iterator, 0, len(v))
 			// loop over array
@@ -540,10 +612,50 @@ func allChildrenThen(path *Path) *Path {
 			return FromIterators(its...)
 
 		case Map:
+			// check path is terminal and we are setting a value
+			if ctx.mode == setMode && path.terminal {
+				// setters
+				setters := []any{}
+				// map keys
+				it := v.Keys()
+				// iterate map keys
+				for k, ok := it(); ok; k, ok = it() {
+					// capture key
+					key := k.(string)
+					// map setter
+					var setter setExpression = func(value any) {
+						// set value
+						v.Set(key, value)
+					}
+					// append iterator
+					setters = append(setters, setter)
+				}
+				return FromValues(false, setters...)
+			}
 			// evaluate path expression on each value
 			return compose(v.Values(), path, root)
 
 		case Array:
+			// check path is terminal and we are setting a value
+			if ctx.mode == setMode && path.terminal {
+				// length
+				length := v.Len()
+				// setters
+				setters := make([]any, 0, length)
+				// loop over array indexes
+				for i := 0; i < length; i++ {
+					// capture index
+					index := i
+					// array setter
+					var setter setExpression = func(value any) {
+						// set value
+						v.Set(index, value)
+					}
+					// append iterator
+					setters = append(setters, setter)
+				}
+				return FromValues(false, setters...)
+			}
 			// evaluate path expression on each value
 			return compose(v.Values(false), path, root)
 
@@ -567,11 +679,27 @@ func arraySubscriptThen(ctx *pathContext, subscript string, path *Path, recursiv
 			// process value type
 			switch v := value.(type) {
 
-			case []any:
+			case []any, Array:
 				// process array below
 				break
 
 			case map[string]any:
+				// check path is terminal and we are setting a value
+				if ctx.mode == setMode && path.terminal {
+					// setters
+					setters := make([]any, 0, len(v))
+					// iterate map
+					loopMap(v, func(k string, _ any) {
+						// map setter
+						var setter setExpression = func(value any) {
+							// set value
+							v[k] = value
+						}
+						// append iterator
+						setters = append(setters, setter)
+					})
+					return FromValues(false, setters...)
+				}
 				// iterators
 				its := make([]Iterator, 0, len(v))
 				// iterate map
@@ -581,11 +709,27 @@ func arraySubscriptThen(ctx *pathContext, subscript string, path *Path, recursiv
 				})
 				return FromIterators(its...)
 
-			case Array:
-				// process array below
-				break
-
 			case Map:
+				// check path is terminal and we are setting a value
+				if ctx.mode == setMode && path.terminal {
+					// setters
+					setters := []any{}
+					// key iterator
+					it := v.Keys()
+					// iterate map
+					for k, ok := it(); ok; k, ok = it() {
+						// capture key
+						key := k.(string)
+						// map setter
+						var setter setExpression = func(value any) {
+							// set value
+							v.Set(key, value)
+						}
+						// append iterator
+						setters = append(setters, setter)
+					}
+					return FromValues(false, setters...)
+				}
 				// evaluate path expression on each value
 				return compose(v.Values(), path, root)
 
@@ -611,10 +755,12 @@ func arraySubscriptThen(ctx *pathContext, subscript string, path *Path, recursiv
 				for _, i := range slice {
 					// check index
 					if i >= 0 && i < len(v) {
+						// capture index
+						index := i
 						// array setter
 						var setter setExpression = func(value any) {
 							// set value
-							v[i] = value
+							v[index] = value
 						}
 						// append index setter
 						setters = append(setters, setter)
@@ -648,10 +794,12 @@ func arraySubscriptThen(ctx *pathContext, subscript string, path *Path, recursiv
 				for _, i := range slice {
 					// check index
 					if i >= 0 && i < v.Len() {
+						// capture index
+						index := i
 						// array setter
 						var setter setExpression = func(value any) {
 							// set value
-							v.Set(i, value)
+							v.Set(index, value)
 						}
 						// append index setter
 						setters = append(setters, setter)
@@ -751,7 +899,7 @@ func childThen(ctx *pathContext, childName string, path *Path, recursive bool) *
 	// check child name
 	if childName == "*" {
 		// all
-		return allChildrenThen(path)
+		return allChildrenThen(ctx, path)
 	}
 	// process child name
 	childName = unescape(childName)

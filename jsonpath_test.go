@@ -166,6 +166,66 @@ func TestSetObjectField1(t *testing.T) {
 	}
 }
 
+func TestSetObjectField2(t *testing.T) {
+	// arrange
+	var data = map[string]any{"a": 1, "b": 2}
+	var path = "$.*"
+	var expected = map[string]any{"a": 3, "b": 3}
+	// act
+	err := Set(data, path, 3)
+	if err != nil {
+		t.Errorf("Failed to get value: %v", err)
+	}
+	if diff := cmp.Diff(expected, data); diff != "" {
+		t.Errorf("Unexpected result: %v", diff)
+	}
+}
+
+func TestSetObjectField3(t *testing.T) {
+	// arrange
+	var data = map[string]any{"a": 1, "b": 2, "c": 3}
+	var path = `$["a", "c"]`
+	var expected = map[string]any{"a": nil, "b": 2, "c": nil}
+	// act
+	err := Set(data, path, nil)
+	if err != nil {
+		t.Errorf("Failed to get value: %v", err)
+	}
+	if diff := cmp.Diff(expected, data); diff != "" {
+		t.Errorf("Unexpected result: %v", diff)
+	}
+}
+
+func TestSetObjectField4(t *testing.T) {
+	// arrange
+	var data = map[string]any{"a": 1, "b": 2, "c": 3}
+	var path = `$[*]`
+	var expected = map[string]any{"a": nil, "b": nil, "c": nil}
+	// act
+	err := Set(data, path, nil)
+	if err != nil {
+		t.Errorf("Failed to get value: %v", err)
+	}
+	if diff := cmp.Diff(expected, data); diff != "" {
+		t.Errorf("Unexpected result: %v", diff)
+	}
+}
+
+func TestSetObjectField5(t *testing.T) {
+	// arrange
+	var data = []any{map[string]any{"a": 1}}
+	var path = `$[*].*`
+	var expected = []any{map[string]any{"a": nil}}
+	// act
+	err := Set(data, path, nil)
+	if err != nil {
+		t.Errorf("Failed to get value: %v", err)
+	}
+	if diff := cmp.Diff(expected, data); diff != "" {
+		t.Errorf("Unexpected result: %v", diff)
+	}
+}
+
 func TestSetArrayField1(t *testing.T) {
 	// arrange
 	var data = []any{2}
@@ -173,6 +233,51 @@ func TestSetArrayField1(t *testing.T) {
 	var expected = []any{1}
 	// act
 	err := Set(data, path, 1)
+	if err != nil {
+		t.Errorf("Failed to get value: %v", err)
+	}
+	if diff := cmp.Diff(expected, data); diff != "" {
+		t.Errorf("Unexpected result: %v", diff)
+	}
+}
+
+func TestSetArrayField2(t *testing.T) {
+	// arrange
+	var data = []any{1, 1, 1}
+	var path = "$.*"
+	var expected = []any{3, 3, 3}
+	// act
+	err := Set(data, path, 3)
+	if err != nil {
+		t.Errorf("Failed to get value: %v", err)
+	}
+	if diff := cmp.Diff(expected, data); diff != "" {
+		t.Errorf("Unexpected result: %v", diff)
+	}
+}
+
+func TestSetArrayField3(t *testing.T) {
+	// arrange
+	var data = []any{1, 2, 3}
+	var path = `$[0, 2]`
+	var expected = []any{nil, 2, nil}
+	// act
+	err := Set(data, path, nil)
+	if err != nil {
+		t.Errorf("Failed to get value: %v", err)
+	}
+	if diff := cmp.Diff(expected, data); diff != "" {
+		t.Errorf("Unexpected result: %v", diff)
+	}
+}
+
+func TestSetArrayField4(t *testing.T) {
+	// arrange
+	var data = []any{1, 2, 3}
+	var path = `$[*]`
+	var expected = []any{nil, nil, nil}
+	// act
+	err := Set(data, path, nil)
 	if err != nil {
 		t.Errorf("Failed to get value: %v", err)
 	}
