@@ -268,7 +268,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 		// trim
 		childNames = strings.TrimSpace(childNames)
 		// process property name
-		return propertyNameBracketChildThen(childNames, subPath, false), nil
+		return propertyNameBracketChildThen(ctx, childNames, subPath, false), nil
 
 	case lexemeArraySubscriptPropertyName:
 		// create sub path
@@ -279,7 +279,7 @@ func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 		// trim '[' and ']~' from token value
 		subscript := strings.TrimSuffix(strings.TrimPrefix(token.val, "["), "]~")
 		// process property name
-		return propertyNameArraySubscriptThen(subscript, subPath, false), nil
+		return propertyNameArraySubscriptThen(ctx, subscript, subPath, false), nil
 	}
 	return nil, errors.New("invalid path expression")
 }
@@ -329,9 +329,14 @@ func propertyNameChildThen(childName string, path *Path, recursive bool) *Path {
 	})
 }
 
-func propertyNameBracketChildThen(childNames string, path *Path, recursive bool) *Path {
+func propertyNameBracketChildThen(ctx *pathContext, childNames string, path *Path, recursive bool) *Path {
 	// "[\"a\", \"b\", \"c\"]" => ["a", "b", "c"]
 	unquotedChildren := bracketChildNames(childNames)
+	// check more than one child
+	if len(unquotedChildren) > 1 {
+		// expression is not definite
+		ctx.definite = false
+	}
 	// create path expression
 	return new(func(operation operation, value, root any) Iterator {
 		// check value type (only objects are allowed)
@@ -366,6 +371,11 @@ func propertyNameBracketChildThen(childNames string, path *Path, recursive bool)
 func bracketChildThen(ctx *pathContext, childNames string, path *Path, recursive bool) *Path {
 	// "[\"a\", \"b\", \"c\"]" => ["a", "b", "c"]
 	unquotedChildren := bracketChildNames(childNames)
+	// check more than one child
+	if len(unquotedChildren) > 1 {
+		// expression is not definite
+		ctx.definite = false
+	}
 	// iterator
 	return new(func(operation operation, value, root any) Iterator {
 		// process value type (it must be an object)
@@ -1105,7 +1115,12 @@ func filterThen(filterLexemes []lexeme, path *Path, recursive bool) *Path {
 	})
 }
 
-func propertyNameArraySubscriptThen(subscript string, path *Path, recursive bool) *Path {
+func propertyNameArraySubscriptThen(ctx *pathContext, subscript string, path *Path, recursive bool) *Path {
+	// check wildcard
+	if subscript == "*" {
+		// expression is not definite
+		ctx.definite = false
+	}
 	// create path expression
 	return new(func(operation operation, value, root any) Iterator {
 		// check wildcard
