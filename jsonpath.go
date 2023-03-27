@@ -10,7 +10,6 @@ func Get(data any, expression string, options ...Option) (any, error) {
 	// initial context
 	ctx := &pathContext{
 		definite: true,
-		mode:     getMode,
 	}
 	// process options
 	for _, option := range options {
@@ -28,7 +27,7 @@ func Get(data any, expression string, options ...Option) (any, error) {
 		return nil, err
 	}
 	// evaluate it
-	it := path.expression(data, data)
+	it := path.expression(getOperation, data, data)
 	// collect results
 	result := it.ToSlice()
 	// check we need to return a list
@@ -56,7 +55,14 @@ func Set(data any, expression string, value any, options ...Option) error {
 	// initial context
 	ctx := &pathContext{
 		definite: true,
-		mode:     setMode,
+	}
+	// process options
+	for _, option := range options {
+		// check option
+		if option.setup != nil {
+			// update context
+			option.setup(ctx)
+		}
 	}
 	// create lexer
 	lexer := lex(expression)
@@ -66,7 +72,7 @@ func Set(data any, expression string, value any, options ...Option) error {
 		return err
 	}
 	// evaluate it
-	it := path.expression(data, data)
+	it := path.expression(setOperation, data, data)
 	// loop iterator
 	for r, ok := it(); ok; r, ok = it() {
 		// current iterator value must be setExpression

@@ -216,10 +216,10 @@ func pathFilterScanner(node *filterNode) filterScanner {
 	return func(value, root any) []typedValue {
 		// check we need to evaluate (value)
 		if at {
-			return values(path.expression(value, value))
+			return values(path.expression(getOperation, value, value))
 		}
 		// evaluate on root
-		return values(path.expression(root, root))
+		return values(path.expression(getOperation, root, root))
 	}
 }
 
