@@ -6,16 +6,6 @@
 
 package jsonpath
 
-type ArrayIterator interface {
-	Len() int
-	Values(reverse bool, indexes ...int) Iterator
-}
-
-type MapIterator interface {
-	Keys(keys ...string) Iterator
-	Values(keys ...string) Iterator
-}
-
 type Iterator func() (any, bool)
 
 func (it Iterator) ToSlice() []any {
@@ -70,7 +60,7 @@ func (it Iterator) RecurseValues() Iterator {
 				stack = append(stack, mv)
 			})
 
-		case ArrayIterator:
+		case Array:
 			// backwards iterator (debugging and unit test consistency)
 			it := v.Values(true)
 			// loop over values
@@ -79,7 +69,7 @@ func (it Iterator) RecurseValues() Iterator {
 				stack = append(stack, iv)
 			}
 
-		case MapIterator:
+		case Map:
 			// iterator
 			it := v.Values()
 			// loop over values

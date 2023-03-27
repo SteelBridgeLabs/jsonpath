@@ -74,20 +74,6 @@ func terminal(expression pathExpression) *Path {
 	}
 }
 
-func createMapSetter(object map[string]any, key string) setExpression {
-	// create setter
-	return func(value any) {
-		object[key] = value
-	}
-}
-
-func createArraySetter(array []any, index int) setExpression {
-	// create setter
-	return func(value any) {
-		array[index] = value
-	}
-}
-
 func createPath(ctx *pathContext, lexer *lexer) (*Path, error) {
 	// get next token from lexer
 	token := lexer.nextLexeme()
@@ -332,7 +318,7 @@ func propertyNameChildThen(childName string, path *Path, recursive bool) *Path {
 				return compose(FromValues(false, childName), path, root)
 			}
 
-		case MapIterator:
+		case Map:
 			// evaluate path expression on each key
 			return compose(o.Keys(childName), path, root)
 		}
@@ -362,7 +348,7 @@ func propertyNameBracketChildThen(childNames string, path *Path, recursive bool)
 			// evaluate path on keys
 			return compose(FromIterators(its...), path, root)
 
-		case MapIterator:
+		case Map:
 			// check we have keys to evaluate
 			if len(unquotedChildren) > 0 {
 				// evaluate path expression on keys
@@ -395,7 +381,7 @@ func bracketChildThen(childNames string, path *Path, recursive bool) *Path {
 			}
 			return compose(FromIterators(its...), path, root)
 
-		case MapIterator:
+		case Map:
 			// check we have keys to evaluate
 			if len(unquotedChildren) > 0 {
 				// evaluate path expression on values @ keys
@@ -553,11 +539,11 @@ func allChildrenThen(path *Path) *Path {
 			}
 			return FromIterators(its...)
 
-		case MapIterator:
+		case Map:
 			// evaluate path expression on each value
 			return compose(v.Values(), path, root)
 
-		case ArrayIterator:
+		case Array:
 			// evaluate path expression on each value
 			return compose(v.Values(false), path, root)
 
@@ -595,11 +581,11 @@ func arraySubscriptThen(ctx *pathContext, subscript string, path *Path, recursiv
 				})
 				return FromIterators(its...)
 
-			case ArrayIterator:
+			case Array:
 				// process array below
 				break
 
-			case MapIterator:
+			case Map:
 				// evaluate path expression on each value
 				return compose(v.Values(), path, root)
 
@@ -625,8 +611,13 @@ func arraySubscriptThen(ctx *pathContext, subscript string, path *Path, recursiv
 				for _, i := range slice {
 					// check index
 					if i >= 0 && i < len(v) {
+						// array setter
+						var setter setExpression = func(value any) {
+							// set value
+							v[i] = value
+						}
 						// append index setter
-						setters = append(setters, createArraySetter(v, i))
+						setters = append(setters, setter)
 					}
 				}
 				return FromValues(false, setters...)
@@ -643,11 +634,30 @@ func arraySubscriptThen(ctx *pathContext, subscript string, path *Path, recursiv
 			}
 			return FromIterators(its...)
 
-		case ArrayIterator:
+		case Array:
 			// process subscript, returns possible indexes
 			slice, err := slice(subscript, v.Len())
 			if err != nil {
 				panic(err) // should not happen, lexer should have detected errors
+			}
+			// check path is terminal and we are setting a value
+			if ctx.mode == setMode && path.terminal {
+				// setters
+				setters := make([]any, 0, len(slice))
+				// iterate indexes
+				for _, i := range slice {
+					// check index
+					if i >= 0 && i < v.Len() {
+						// array setter
+						var setter setExpression = func(value any) {
+							// set value
+							v.Set(i, value)
+						}
+						// append index setter
+						setters = append(setters, setter)
+					}
+				}
+				return FromValues(false, setters...)
 			}
 			// check slice contain indexes
 			if len(slice) > 0 {
@@ -684,7 +694,7 @@ func filterThen(filterLexemes []lexeme, path *Path, recursive bool) *Path {
 			}
 			return FromIterators(its...)
 
-		case ArrayIterator:
+		case Array:
 			// iterators
 			its := make([]Iterator, 0, v.Len())
 			// iterator
@@ -728,7 +738,7 @@ func propertyNameArraySubscriptThen(subscript string, path *Path, recursive bool
 				})
 				return FromIterators(its...)
 
-			case MapIterator:
+			case Map:
 				// evaluate path expression on each key
 				return compose(v.Keys(), path, root)
 			}
@@ -765,7 +775,7 @@ func childThen(ctx *pathContext, childName string, path *Path, recursive bool) *
 				}
 				return FromIterators(its...)
 
-			case ArrayIterator:
+			case Array:
 				// iterators
 				its := make([]Iterator, 0, v.Len()+1)
 				// evaluate path expression on array
@@ -792,7 +802,12 @@ func childThen(ctx *pathContext, childName string, path *Path, recursive bool) *
 			// check path is terminal and we are setting a value
 			if ctx.mode == setMode && path.terminal {
 				// map setter
-				return FromValues(false, createMapSetter(o, childName))
+				var setter setExpression = func(value any) {
+					// set value
+					o[childName] = value
+				}
+				// map setter
+				return FromValues(false, setter)
 			}
 			// find key in map
 			if mv, ok := o[childName]; ok {
@@ -810,7 +825,16 @@ func childThen(ctx *pathContext, childName string, path *Path, recursive bool) *
 				return FromValues(false, nil)
 			}
 
-		case MapIterator:
+		case Map:
+			// check path is terminal and we are setting a value
+			if ctx.mode == setMode && path.terminal {
+				// map setter
+				var setter setExpression = func(value any) {
+					// set value
+					o.Set(childName, value)
+				}
+				return FromValues(false, setter)
+			}
 			// iterator
 			it := o.Values(childName)
 			// find value in map

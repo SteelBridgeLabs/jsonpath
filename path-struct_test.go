@@ -12,13 +12,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-type Array []any
+type MyArray []any
 
-func (a Array) Len() int {
+func (a MyArray) Len() int {
 	return len(a)
 }
 
-func (a Array) Values(reverse bool, indexes ...int) Iterator {
+func (a MyArray) Values(reverse bool, indexes ...int) Iterator {
 	// check we need specific keys
 	if len(indexes) > 0 {
 		//  values in map
@@ -37,9 +37,13 @@ func (a Array) Values(reverse bool, indexes ...int) Iterator {
 	return FromValues(reverse, a...)
 }
 
-type Object map[string]any
+func (a MyArray) Set(index int, value any) {
+	a[index] = value
+}
 
-func (o Object) Keys(keys ...string) Iterator {
+type MyMap map[string]any
+
+func (o MyMap) Keys(keys ...string) Iterator {
 	// check we need specific keys
 	if len(keys) > 0 {
 		//  values in map
@@ -64,7 +68,7 @@ func (o Object) Keys(keys ...string) Iterator {
 	return FromValues(false, values...)
 }
 
-func (o Object) Values(keys ...string) Iterator {
+func (o MyMap) Values(keys ...string) Iterator {
 	// check we need specific keys
 	if len(keys) > 0 {
 		//  values in map
@@ -89,9 +93,13 @@ func (o Object) Values(keys ...string) Iterator {
 	return FromValues(false, values...)
 }
 
+func (o MyMap) Set(key string, value any) {
+	o[key] = value
+}
+
 func TestIdentityStructPath(t *testing.T) {
 	// arrange
-	value := Array{}
+	value := MyArray{}
 	path, _ := NewPath("")
 	// act
 	result := path.Evaluate(value)
@@ -99,14 +107,14 @@ func TestIdentityStructPath(t *testing.T) {
 	if len(result) != 1 {
 		t.Error("expected 1 result")
 	}
-	if diff := cmp.Diff([]any{Array{}}, result); diff != "" {
+	if diff := cmp.Diff([]any{MyArray{}}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
 }
 
 func TestRootStructPath(t *testing.T) {
 	// arrange
-	value := Array{1, 2, 3}
+	value := MyArray{1, 2, 3}
 	path, _ := NewPath("$")
 	// act
 	result := path.Evaluate(value)
@@ -121,7 +129,7 @@ func TestRootStructPath(t *testing.T) {
 
 func TestDotChildStructPath1(t *testing.T) {
 	// arrange
-	value := Array{1, 2, 3}
+	value := MyArray{1, 2, 3}
 	path, _ := NewPath("$.*")
 	// act
 	result := path.Evaluate(value)
@@ -133,7 +141,7 @@ func TestDotChildStructPath1(t *testing.T) {
 
 func TestDotChildStructPath2(t *testing.T) {
 	// arrange
-	value := Object{"a": "va", "b": "vb", "c": "vc"}
+	value := MyMap{"a": "va", "b": "vb", "c": "vc"}
 	path, _ := NewPath("$.*")
 	// act
 	result := path.Evaluate(value)
@@ -145,7 +153,7 @@ func TestDotChildStructPath2(t *testing.T) {
 
 func TestDotChildStructPath3(t *testing.T) {
 	// arrange
-	value := Object{"a": "test"}
+	value := MyMap{"a": "test"}
 	path, _ := NewPath("$.a")
 	// act
 	result := path.Evaluate(value)
@@ -157,7 +165,7 @@ func TestDotChildStructPath3(t *testing.T) {
 
 func TestRecursiveDescentStructPath1(t *testing.T) {
 	// arrange
-	value := Object{"x": Object{"a": "test"}}
+	value := MyMap{"x": MyMap{"a": "test"}}
 	path, _ := NewPath("$..a")
 	// act
 	result := path.Evaluate(value)
@@ -169,7 +177,7 @@ func TestRecursiveDescentStructPath1(t *testing.T) {
 
 func TestRecursiveDescentStructPath2(t *testing.T) {
 	// arrange
-	value := Array{0, 1, Array{10, 11}}
+	value := MyArray{0, 1, MyArray{10, 11}}
 	path, _ := NewPath("$..[1]")
 	// act
 	result := path.Evaluate(value)
@@ -181,31 +189,31 @@ func TestRecursiveDescentStructPath2(t *testing.T) {
 
 func TestRecursiveDescentStructPath3(t *testing.T) {
 	// arrange
-	value := Object{"x": Object{"a": "test1"}, "y": Object{"a": "test2"}}
+	value := MyMap{"x": MyMap{"a": "test1"}, "y": MyMap{"a": "test2"}}
 	path, _ := NewPath("$..*")
 	// act
 	result := path.Evaluate(value)
 	// assert
-	if diff := cmp.Diff([]any{Object{"a": "test1"}, Object{"a": "test2"}, "test2", "test1"}, result); diff != "" {
+	if diff := cmp.Diff([]any{MyMap{"a": "test1"}, MyMap{"a": "test2"}, "test2", "test1"}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
 }
 
 func TestUndottedChildStructPath1(t *testing.T) {
 	// arrange
-	value := Object{"x": Object{"a": "test1"}, "y": Object{"a": "test2"}}
+	value := MyMap{"x": MyMap{"a": "test1"}, "y": MyMap{"a": "test2"}}
 	path, _ := NewPath("x")
 	// act
 	result := path.Evaluate(value)
 	// assert
-	if diff := cmp.Diff([]any{Object{"a": string("test1")}}, result); diff != "" {
+	if diff := cmp.Diff([]any{MyMap{"a": string("test1")}}, result); diff != "" {
 		t.Errorf("invalid result: %s", diff)
 	}
 }
 
 func TestUndottedChildStructPath2(t *testing.T) {
 	// arrange
-	value := Object{"x": Object{"a": "test1"}, "y": Object{"a": "test2"}}
+	value := MyMap{"x": MyMap{"a": "test1"}, "y": MyMap{"a": "test2"}}
 	path, _ := NewPath("x~")
 	// act
 	result := path.Evaluate(value)
@@ -217,7 +225,7 @@ func TestUndottedChildStructPath2(t *testing.T) {
 
 func TestBracketChildStructPath1(t *testing.T) {
 	// arrange
-	value := Object{"x": Object{"a": "test1"}, "y": Object{"a": "test2"}}
+	value := MyMap{"x": MyMap{"a": "test1"}, "y": MyMap{"a": "test2"}}
 	path, _ := NewPath(`x["a"]`)
 	// act
 	result := path.Evaluate(value)
@@ -229,7 +237,7 @@ func TestBracketChildStructPath1(t *testing.T) {
 
 func TestBracketChildStructPath2(t *testing.T) {
 	// arrange
-	value := Array{1, 2, 3}
+	value := MyArray{1, 2, 3}
 	path, _ := NewPath(`["1", "a"]`)
 	// act
 	result := path.Evaluate(value)
@@ -241,7 +249,7 @@ func TestBracketChildStructPath2(t *testing.T) {
 
 func TestBracketChildStructPath3(t *testing.T) {
 	// arrange
-	value := Object{"x": Object{"a": "test1"}, "y": Object{"a": "test2"}}
+	value := MyMap{"x": MyMap{"a": "test1"}, "y": MyMap{"a": "test2"}}
 	path, _ := NewPath(`x["a"]~`)
 	// act
 	result := path.Evaluate(value)
@@ -253,7 +261,7 @@ func TestBracketChildStructPath3(t *testing.T) {
 
 func TestBracketChildStructPath4(t *testing.T) {
 	// arrange
-	value := Array{1, 2, 3}
+	value := MyArray{1, 2, 3}
 	path, _ := NewPath(`["1"]~`)
 	// act
 	result := path.Evaluate(value)
@@ -265,29 +273,29 @@ func TestBracketChildStructPath4(t *testing.T) {
 
 func TestFilterOnRecursiveDescentStructPath1(t *testing.T) {
 	// arrange
-	value := Object{
-		"store": Object{
-			"book": Array{
-				Object{
+	value := MyMap{
+		"store": MyMap{
+			"book": MyArray{
+				MyMap{
 					"category": "reference",
 					"author":   "Nigel Rees",
 					"title":    "Sayings of the Century",
 					"price":    8.95,
 				},
-				Object{
+				MyMap{
 					"category": "fiction",
 					"author":   "Evelyn Waugh",
 					"title":    "Sword of Honour",
 					"price":    12.99,
 				},
-				Object{
+				MyMap{
 					"category": "fiction",
 					"author":   "Herman Melville",
 					"title":    "Moby Dick",
 					"isbn":     "0-553-21311-3",
 					"price":    8.99,
 				},
-				Object{
+				MyMap{
 					"category": "fiction",
 					"author":   "J. R. R. Tolkien",
 					"title":    "The Lord of the Rings",
@@ -295,7 +303,7 @@ func TestFilterOnRecursiveDescentStructPath1(t *testing.T) {
 					"price":    22.99,
 				},
 			},
-			"bicycle": Object{
+			"bicycle": MyMap{
 				"color": "red",
 				"price": 19.95,
 			},
@@ -303,14 +311,14 @@ func TestFilterOnRecursiveDescentStructPath1(t *testing.T) {
 	}
 	path, _ := NewPath(`$..book[?(@.isbn)]`)
 	expected := []any{
-		Object{
+		MyMap{
 			"category": "fiction",
 			"author":   "Herman Melville",
 			"title":    "Moby Dick",
 			"isbn":     "0-553-21311-3",
 			"price":    8.99,
 		},
-		Object{
+		MyMap{
 			"category": "fiction",
 			"author":   "J. R. R. Tolkien",
 			"title":    "The Lord of the Rings",
@@ -328,29 +336,29 @@ func TestFilterOnRecursiveDescentStructPath1(t *testing.T) {
 
 func TestFilterOnRecursiveDescentStructPath2(t *testing.T) {
 	// arrange
-	value := Object{
-		"store": Object{
-			"book": Array{
-				Object{
+	value := MyMap{
+		"store": MyMap{
+			"book": MyArray{
+				MyMap{
 					"category": "reference",
 					"author":   "Nigel Rees",
 					"title":    "Sayings of the Century",
 					"price":    8.95,
 				},
-				Object{
+				MyMap{
 					"category": "fiction",
 					"author":   "Evelyn Waugh",
 					"title":    "Sword of Honour",
 					"price":    12.99,
 				},
-				Object{
+				MyMap{
 					"category": "fiction",
 					"author":   "Herman Melville",
 					"title":    "Moby Dick",
 					"isbn":     "0-553-21311-3",
 					"price":    8.99,
 				},
-				Object{
+				MyMap{
 					"category": "fiction",
 					"author":   "J. R. R. Tolkien",
 					"title":    "The Lord of the Rings",
@@ -358,7 +366,7 @@ func TestFilterOnRecursiveDescentStructPath2(t *testing.T) {
 					"price":    22.99,
 				},
 			},
-			"bicycle": Object{
+			"bicycle": MyMap{
 				"color": "red",
 				"price": 19.95,
 			},
@@ -369,7 +377,7 @@ func TestFilterOnRecursiveDescentStructPath2(t *testing.T) {
 		t.Errorf("invalid path: %s", err)
 	}
 	expected := []any{
-		Object{
+		MyMap{
 			"category": "reference",
 			"author":   "Nigel Rees",
 			"title":    "Sayings of the Century",
