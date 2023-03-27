@@ -53,6 +53,7 @@ func NewPath(path string) (*Path, error) {
 	return createPath(ctx, lexer)
 }
 
+// Evaluate evaluates the compiled JsonPath expression get operation on the given value.
 func (p *Path) Evaluate(value any) []any {
 	// evaluate path
 	it := p.expression(getOperation, value, value)

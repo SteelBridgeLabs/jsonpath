@@ -158,14 +158,43 @@ Comparison expressions are built from existence and/or comparison filters using 
 
 ## High level API
 
+Definite JsonPath expression:
+
+* Does not contain `..` (a deep scan operator)
+* Does not contain `?(<expression>)` (filter)
+* Does not contain `[<number>, <number>, ..., <number>]` (multiple array indexes)
+
 ### Get operations
 
 ```go
-data := []any{1}
+data := 1
 
-result, err := jsonpath.Get(data, "$", options)
+result, err := jsonpath.Get(data, "$")
+```
 
-// expected =? result = []any{[]any{1}}
+Options:
+
+* `jsonpath.AlwaysReturnList()`: Makes this implementation more compliant to the Goessner spec. All results are returned as Lists.
+
+```go
+data := 1
+
+result, err := jsonpath.Get(data, "$") // returns 1
+
+result, err := jsonpath.Get(data, "$", jsonpath.AlwaysReturnList()) // returns []any{1}
+```
+
+* `jsonpath.ReturnNullForMissingLeaf()`: Returns `nil` for missing leaf:
+
+```go
+data := []any{
+    map[string]any{"foo" : "foo1", "bar" : "bar1"},
+    map[string]any{"foo" : "foo2"},
+}
+
+result, err := jsonpath.Get(data, "$[*].bar") // returns []any{"bar1"}
+
+result, err := jsonpath.Get(data, "$[*].bar", jsonpath.ReturnNullForMissingLeaf()) // returns []any{"bar1", nil}
 ```
 
 ### Set operations
