@@ -522,7 +522,7 @@ func unmarshalDoc(t *testing.T, doc string) any {
 
 func parseFilterString(filter string) *filterNode {
 	path := fmt.Sprintf("$[?(%s)]", filter)
-	lexer := lex("Path lexer", path)
+	lexer := lex(path)
 
 	lexemes := []lexeme{}
 	for {

@@ -2153,7 +2153,7 @@ func TestLexer(t *testing.T) {
 			continue
 		}
 		t.Run(tc.name, func(t *testing.T) {
-			l := lex("test", tc.path)
+			l := lex(tc.path)
 			actual := []lexeme{}
 			for {
 				lexeme := l.nextLexeme()

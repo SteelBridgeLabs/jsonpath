@@ -163,7 +163,6 @@ type stateFn func(*lexer) stateFn
 
 // lexer holds the state of the scanner.
 type lexer struct {
-	name                  string      // name of the lexer, used only for error reports
 	input                 string      // the string being scanned
 	start                 int         // start position of this item
 	pos                   int         // current position in the input
@@ -176,9 +175,8 @@ type lexer struct {
 }
 
 // lex creates a new scanner for the input string.
-func lex(name, input string) *lexer {
+func lex(input string) *lexer {
 	l := &lexer{
-		name:                  name,
 		input:                 input,
 		state:                 lexPath,
 		stack:                 make([]stateFn, 0),

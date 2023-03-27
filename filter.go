@@ -216,10 +216,10 @@ func pathFilterScanner(node *filterNode) filterScanner {
 	return func(value, root any) []typedValue {
 		// check we need to evaluate (value)
 		if at {
-			return values(path.Evaluate(value))
+			return values(path.expression(getOperation, value, value))
 		}
 		// evaluate on root
-		return values(path.Evaluate(root))
+		return values(path.expression(getOperation, root, root))
 	}
 }
 
@@ -332,14 +332,11 @@ func typedValueOfFloat64(f float64) typedValue {
 	return newTypedValue(floatValueType, strconv.FormatFloat(f, 'f', -1, 64))
 }
 
-func values(values []any, err error) []typedValue {
-	if err != nil {
-		panic(fmt.Errorf("unexpected error: %v", err)) // should never happen
-	}
+func values(it Iterator) []typedValue {
 	// result
 	result := []typedValue{}
-	// loop values
-	for _, v := range values {
+	// loop iterator
+	for v, ok := it(); ok; v, ok = it() {
 		// append typed for v
 		result = append(result, typedValueOfNode(v))
 	}

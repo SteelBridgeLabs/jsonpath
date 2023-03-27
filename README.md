@@ -156,6 +156,28 @@ The more general case is a logical extension of this. Each value on the left han
 
 Comparison expressions are built from existence and/or comparison filters using familiar logical operators -- disjunction ("or", `||`), conjunction ("and", `&&`), and negation ("not", `!`) -- together with parenthesised expressions.
 
+## High level API
+
+### Get operations
+
+```go
+data := []any{1}
+
+result, err := jsonpath.Get(data, "$", options)
+
+// expected =? result = []any{[]any{1}}
+```
+
+### Set operations
+
+```go
+data := map[string]any{"a": 10}
+
+err := jsonpath.Set(data, "$.a", 20, options)
+
+// expected => data = map[string]any{"a": 20}
+```
+
 ## Trying it out
 
 See the [web application](./web/README.md) provided in this repository.

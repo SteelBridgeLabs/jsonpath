@@ -106,11 +106,9 @@ func executeTestCase(testCase map[string]any, id string, t *testing.T, focused m
 			return
 		}
 		// evaluate
-		result, err := path.Evaluate(testCase["document"])
+		result := path.Evaluate(testCase["document"])
 		// check consensus exists
 		if consensus, ok := testCase["consensus"]; ok {
-			// should not fail
-			require.NoError(t, err, "Failed to evaluate selector `%s`", selector)
 			// skip tests known to have differences
 			if _, ok := knownDifferences[id]; ok && len(focused) == 0 {
 				// exit

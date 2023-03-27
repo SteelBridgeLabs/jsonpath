@@ -12,12 +12,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestReturnNullOnMissingLeaf(t *testing.T) {
+func TestReturnNullOnMissingLeafWithStruct(t *testing.T) {
 	// arrange
-	var data = []any{
-		map[string]any{"a": 1},
-		map[string]any{"b": 2},
-		map[string]any{"c": 3},
+	var data = TestArray{
+		TestMap{"a": 1},
+		TestMap{"b": 2},
+		TestMap{"c": 3},
 	}
 	var path = "$..b"
 	var expected = []any{nil, 2, nil}
@@ -31,9 +31,9 @@ func TestReturnNullOnMissingLeaf(t *testing.T) {
 	}
 }
 
-func TestDefinitiveResult1(t *testing.T) {
+func TestDefinitiveResult1WithStruct(t *testing.T) {
 	// arrange
-	var data = map[string]any{"a": 1}
+	var data = TestMap{"a": 1}
 	var path = "$.a"
 	var expected = 1
 	// act
@@ -46,9 +46,9 @@ func TestDefinitiveResult1(t *testing.T) {
 	}
 }
 
-func TestDefinitiveResult2(t *testing.T) {
+func TestDefinitiveResult2WithStruct(t *testing.T) {
 	// arrange
-	var data = map[string]any{"a": 1}
+	var data = TestMap{"a": 1}
 	var path = "$.a"
 	var expected = []any{1}
 	// act
@@ -61,11 +61,11 @@ func TestDefinitiveResult2(t *testing.T) {
 	}
 }
 
-func TestDefinitiveResult3(t *testing.T) {
+func TestDefinitiveResult3WithStruct(t *testing.T) {
 	// arrange
-	var data = map[string]any{"a": []any{}}
+	var data = TestMap{"a": TestArray{}}
 	var path = "$.a"
-	var expected = []any{}
+	var expected = TestArray{}
 	// act
 	result, err := Get(data, path, ReturnNullForMissingLeaf())
 	if err != nil {
@@ -76,11 +76,11 @@ func TestDefinitiveResult3(t *testing.T) {
 	}
 }
 
-func TestDefinitiveResult4(t *testing.T) {
+func TestDefinitiveResult4WithStruct(t *testing.T) {
 	// arrange
-	var data = map[string]any{"a": []any{}}
+	var data = TestMap{"a": TestArray{}}
 	var path = "$.a"
-	var expected = []any{[]any{}}
+	var expected = []any{TestArray{}}
 	// act
 	result, err := Get(data, path, ReturnNullForMissingLeaf(), AlwaysReturnList())
 	if err != nil {
@@ -91,9 +91,9 @@ func TestDefinitiveResult4(t *testing.T) {
 	}
 }
 
-func TestDefinitiveResult5(t *testing.T) {
+func TestDefinitiveResult5WithStruct(t *testing.T) {
 	// arrange
-	var data = map[string]any{"a": 1}
+	var data = TestMap{"a": 1}
 	var path = "$.b"
 	var expected any = nil
 	// act
@@ -106,9 +106,9 @@ func TestDefinitiveResult5(t *testing.T) {
 	}
 }
 
-func TestDefinitiveResult6(t *testing.T) {
+func TestDefinitiveResult6WithStruct(t *testing.T) {
 	// arrange
-	var data = map[string]any{"a": 1}
+	var data = TestMap{"a": 1}
 	var path = "$.b"
 	var expected = []any{}
 	// act
@@ -121,11 +121,11 @@ func TestDefinitiveResult6(t *testing.T) {
 	}
 }
 
-func TestDefinitiveResult7(t *testing.T) {
+func TestDefinitiveResult7WithStruct(t *testing.T) {
 	// arrange
-	var data = map[string]any{"a": []any{}}
+	var data = TestMap{"a": TestArray{}}
 	var path = "$..a"
-	var expected = []any{[]any{}}
+	var expected = []any{TestArray{}}
 	// act
 	result, err := Get(data, path, ReturnNullForMissingLeaf())
 	if err != nil {
@@ -136,11 +136,11 @@ func TestDefinitiveResult7(t *testing.T) {
 	}
 }
 
-func TestDefinitiveResult8(t *testing.T) {
+func TestDefinitiveResult8WithStruct(t *testing.T) {
 	// arrange
-	var data = map[string]any{"a": []any{}}
+	var data = TestMap{"a": TestArray{}}
 	var path = "$..a"
-	var expected = []any{[]any{}}
+	var expected = []any{TestArray{}}
 	// act
 	result, err := Get(data, path, ReturnNullForMissingLeaf(), AlwaysReturnList())
 	if err != nil {
@@ -151,11 +151,11 @@ func TestDefinitiveResult8(t *testing.T) {
 	}
 }
 
-func TestSetObjectField1(t *testing.T) {
+func TestSetObjectField1WithStruct(t *testing.T) {
 	// arrange
-	var data = map[string]any{}
+	var data = TestMap{}
 	var path = "$.b"
-	var expected = map[string]any{"b": 1}
+	var expected = TestMap{"b": 1}
 	// act
 	err := Set(data, path, 1)
 	if err != nil {
@@ -166,11 +166,11 @@ func TestSetObjectField1(t *testing.T) {
 	}
 }
 
-func TestSetObjectField2(t *testing.T) {
+func TestSetObjectField2WithStruct(t *testing.T) {
 	// arrange
-	var data = map[string]any{"a": 1, "b": 2}
+	var data = TestMap{"a": 1, "b": 2}
 	var path = "$.*"
-	var expected = map[string]any{"a": 3, "b": 3}
+	var expected = TestMap{"a": 3, "b": 3}
 	// act
 	err := Set(data, path, 3)
 	if err != nil {
@@ -181,11 +181,11 @@ func TestSetObjectField2(t *testing.T) {
 	}
 }
 
-func TestSetObjectField3(t *testing.T) {
+func TestSetObjectField3WithStruct(t *testing.T) {
 	// arrange
-	var data = map[string]any{"a": 1, "b": 2, "c": 3}
+	var data = TestMap{"a": 1, "b": 2, "c": 3}
 	var path = `$["a", "c"]`
-	var expected = map[string]any{"a": nil, "b": 2, "c": nil}
+	var expected = TestMap{"a": nil, "b": 2, "c": nil}
 	// act
 	err := Set(data, path, nil)
 	if err != nil {
@@ -196,11 +196,11 @@ func TestSetObjectField3(t *testing.T) {
 	}
 }
 
-func TestSetObjectField4(t *testing.T) {
+func TestSetObjectField4WithStruct(t *testing.T) {
 	// arrange
-	var data = map[string]any{"a": 1, "b": 2, "c": 3}
+	var data = TestMap{"a": 1, "b": 2, "c": 3}
 	var path = `$[*]`
-	var expected = map[string]any{"a": nil, "b": nil, "c": nil}
+	var expected = TestMap{"a": nil, "b": nil, "c": nil}
 	// act
 	err := Set(data, path, nil)
 	if err != nil {
@@ -211,11 +211,11 @@ func TestSetObjectField4(t *testing.T) {
 	}
 }
 
-func TestSetObjectField5(t *testing.T) {
+func TestSetObjectField5WithStruct(t *testing.T) {
 	// arrange
-	var data = []any{map[string]any{"a": 1}}
+	var data = TestArray{TestMap{"a": 1}}
 	var path = `$[*].*`
-	var expected = []any{map[string]any{"a": nil}}
+	var expected = TestArray{TestMap{"a": nil}}
 	// act
 	err := Set(data, path, nil)
 	if err != nil {
@@ -226,11 +226,11 @@ func TestSetObjectField5(t *testing.T) {
 	}
 }
 
-func TestSetArrayField1(t *testing.T) {
+func TestSetArrayField1WithStruct(t *testing.T) {
 	// arrange
-	var data = []any{2}
+	var data = TestArray{2}
 	var path = "$[0]"
-	var expected = []any{1}
+	var expected = TestArray{1}
 	// act
 	err := Set(data, path, 1)
 	if err != nil {
@@ -241,11 +241,11 @@ func TestSetArrayField1(t *testing.T) {
 	}
 }
 
-func TestSetArrayField2(t *testing.T) {
+func TestSetArrayField2WithStruct(t *testing.T) {
 	// arrange
-	var data = []any{1, 1, 1}
+	var data = TestArray{1, 1, 1}
 	var path = "$.*"
-	var expected = []any{3, 3, 3}
+	var expected = TestArray{3, 3, 3}
 	// act
 	err := Set(data, path, 3)
 	if err != nil {
@@ -256,11 +256,11 @@ func TestSetArrayField2(t *testing.T) {
 	}
 }
 
-func TestSetArrayField3(t *testing.T) {
+func TestSetArrayField3WithStruct(t *testing.T) {
 	// arrange
-	var data = []any{1, 2, 3}
+	var data = TestArray{1, 2, 3}
 	var path = `$[0, 2]`
-	var expected = []any{nil, 2, nil}
+	var expected = TestArray{nil, 2, nil}
 	// act
 	err := Set(data, path, nil)
 	if err != nil {
@@ -271,11 +271,11 @@ func TestSetArrayField3(t *testing.T) {
 	}
 }
 
-func TestSetArrayField4(t *testing.T) {
+func TestSetArrayField4WithStruct(t *testing.T) {
 	// arrange
-	var data = []any{1, 2, 3}
+	var data = TestArray{1, 2, 3}
 	var path = `$[*]`
-	var expected = []any{nil, nil, nil}
+	var expected = TestArray{nil, nil, nil}
 	// act
 	err := Set(data, path, nil)
 	if err != nil {
