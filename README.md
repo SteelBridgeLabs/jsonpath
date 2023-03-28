@@ -184,7 +184,7 @@ result, err := jsonpath.Get(data, "$") // returns 1
 result, err := jsonpath.Get(data, "$", jsonpath.AlwaysReturnList()) // returns []any{1}
 ```
 
-* `jsonpath.ReturnNullForMissingLeaf()`: Returns `nil` for missing leaf:
+* `jsonpath.ReturnNullForMissingLeaf()`: Returns `nil` for missing leaf.
 
 ```go
 data := []any{

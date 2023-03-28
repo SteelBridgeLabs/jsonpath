@@ -27,3 +27,6 @@ jobs:
 
     - name: Test
       run: go test -race -tags test -coverprofile=coverage.txt -covermode=atomic ./...
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
