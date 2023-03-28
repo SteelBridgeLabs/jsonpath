@@ -847,7 +847,9 @@ func TestLexer(t *testing.T) {
 			path: "$..['child']",
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
-				{typ: lexemeError, val: `child name or array access or filter missing after recursive descent at position 3, following "$.."`},
+				{typ: lexemeRecursiveDescent, val: ".."},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeIdentity, val: ""},
 			},
 		},
 		{
@@ -855,7 +857,9 @@ func TestLexer(t *testing.T) {
 			path: `$..["child"]`,
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
-				{typ: lexemeError, val: `child name or array access or filter missing after recursive descent at position 3, following "$.."`},
+				{typ: lexemeRecursiveDescent, val: ".."},
+				{typ: lexemeBracketChild, val: `["child"]`},
+				{typ: lexemeIdentity, val: ""},
 			},
 		},
 		{
