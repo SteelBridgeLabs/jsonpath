@@ -15,9 +15,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var knownParsingErrors = map[string]string{
-	"union_with_keys_after_recursive_descent": `child name or array access or filter missing after recursive descent at position 3, following "$.."`,
-}
+var knownParsingErrors = map[string]string{}
 
 var knownEvaluationErrors = map[string]string{}
 
@@ -50,7 +48,7 @@ func TestRegressionDocument(t *testing.T) {
 	}
 	// focused tests
 	focused := map[string]struct{}{
-		//"a": {},
+		//"filter_expression_with_value_after_dot_notation_with_wildcard_on_array_of_objects": {},
 	}
 	// queries
 	queries := testSuite["queries"].([]any)
@@ -80,6 +78,9 @@ func TestRegressionDocument(t *testing.T) {
 			// execute
 			executeTestCase(testCase, id, t, focused)
 		}
+	}
+	if len(focused) != 0 {
+		t.Fatalf("testcase(s) still focussed")
 	}
 }
 

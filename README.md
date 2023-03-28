@@ -45,6 +45,7 @@ Valid paths are strings conforming to the following BNF syntax.
                            ""                                      ; empty string
 
 <recursive descent> ::= ".." <dotted child name> |                 ; all the descendants named <dotted child name>
+                        ".." <bracket child> |                     ; object access of all descendents
                         ".." <array access>  |                     ; array access of all descendents
 <array access> ::= "[" "*" "]" | "[" union "]" | "[" <filter> "]"  ; all, zero or more elements of a sequence
 

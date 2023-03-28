@@ -707,14 +707,8 @@ func allChildrenThen(ctx *pathContext, path *Path) *Path {
 					return FromValues(false, expressions...)
 				}
 			}
-			// iterators
-			its := make([]Iterator, 0, len(v))
-			// loop over array
-			for _, av := range v {
-				// append iterator
-				its = append(its, compose(operation, FromValues(false, av), path, root))
-			}
-			return FromIterators(its...)
+			// evaluate path on array items
+			return compose(operation, FromValues(false, v...), path, root)
 
 		case Map:
 			// check path is terminal
@@ -809,7 +803,7 @@ func allChildrenThen(ctx *pathContext, path *Path) *Path {
 					return FromValues(false, expressions...)
 				}
 			}
-			// evaluate path expression on each value
+			// evaluate path on array items
 			return compose(operation, v.Values(false), path, root)
 
 		default:
@@ -1168,11 +1162,9 @@ func childThen(ctx *pathContext, childName string, path *Path, recursive bool) *
 				its := make([]Iterator, 0, len(v)+1)
 				// evaluate path expression on array
 				its = append(its, compose(operation, FromValues(false, v), path, root))
-				// loop over array
-				for _, av := range v {
-					// evaluate path expression on value
-					its = append(its, compose(operation, FromValues(false, av), path, root))
-				}
+				// evaluate path on slice items
+				its = append(its, compose(operation, FromValues(false, v...), path, root))
+				// combine iterators
 				return FromIterators(its...)
 
 			case Array:
@@ -1180,13 +1172,9 @@ func childThen(ctx *pathContext, childName string, path *Path, recursive bool) *
 				its := make([]Iterator, 0, v.Len()+1)
 				// evaluate path expression on array
 				its = append(its, compose(operation, FromValues(false, v), path, root))
-				// iterator
-				it := v.Values(false)
-				// loop values
-				for av, ok := it(); ok; av, ok = it() {
-					// evaluate path expression on value
-					its = append(its, compose(operation, FromValues(false, av), path, root))
-				}
+				// evaluate path on array items
+				its = append(its, compose(operation, v.Values(false), path, root))
+				// combine iterators
 				return FromIterators(its...)
 
 			default:
