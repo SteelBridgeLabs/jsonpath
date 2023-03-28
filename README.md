@@ -3,6 +3,8 @@
 [![Build](https://github.com/SteelBridgeLabs/jsonpath/actions/workflows/go.yml/badge.svg)](https://github.com/SteelBridgeLabs/jsonpath/actions)
 [![GoDoc](https://godoc.org/github.com/SteelBridgeLabs/jsonpath?status.svg)](https://godoc.org/github.com/SteelBridgeLabs/jsonpath)
 [![Go Report Card](https://goreportcard.com/badge/SteelBridgeLabs/jsonpath)](https://goreportcard.com/report/SteelBridgeLabs/jsonpath)
+[![codecov](https://codecov.io/gh/SteelBridgeLabs/jsonpath/branch/main/graph/badge.svg?token=J3PIL4O8LQ)](https://codecov.io/gh/SteelBridgeLabs/jsonpath)
+
 
 JsonPath implementation for the GO programming language.
 
@@ -44,7 +46,7 @@ Valid paths are strings conforming to the following BNF syntax.
 
 <recursive descent> ::= ".." <dotted child name> |                 ; all the descendants named <dotted child name>
                         ".." <array access>  |                     ; array access of all descendents
-<array access> ::= "[" "*" "]" | [" union "]" | "[" <filter> "]"   ; all, zero or more elements of a sequence
+<array access> ::= "[" "*" "]" | "[" union "]" | "[" <filter> "]"  ; all, zero or more elements of a sequence
 
 <union> ::= <index> | <index> "," <union>
 <index> ::= <integer> | <range>                                    ; specific index, range of indices, or all indices
