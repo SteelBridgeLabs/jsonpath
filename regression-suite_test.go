@@ -48,7 +48,7 @@ func TestRegressionDocument(t *testing.T) {
 	}
 	// focused tests
 	focused := map[string]struct{}{
-		//"union_with_keys_after_recursive_descent": {},
+		//"filter_expression_with_value_after_dot_notation_with_wildcard_on_array_of_objects": {},
 	}
 	// queries
 	queries := testSuite["queries"].([]any)
